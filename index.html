@@ -368,8 +368,8 @@
     // 設定區 - 修改這裡的 Google Sheets 資訊
     // ============================================================
     const CONFIG = {
-      // Google Sheet 已發佈金鑰（從發佈網址取得）
-      PUBLISHED_KEY: '2PACX-1vRs6O6yhomyci12NhBmog0EmqIJVRCL9qzBfLoCwY_A1NMwHXGfqbXw2yiH18kN61Sb09u6s_3rqfls',
+      // Google Sheet ID（原始試算表 ID）
+      SHEET_ID: '1SlGXwWgjjqoywFYx3nkE-7YolFfdLkK-Q1JuaT4Kt5Y',
 
       // 導覽記錄工作表 gid
       TOUR_SHEET_GID: '693491083',
@@ -400,63 +400,45 @@
     // ============================================================
 
     /**
-     * 從已發佈的 Google Sheets 取得 CSV 資料
-     * 需要先在 Google Sheets 執行「檔案 > 共用 > 發佈到網路」
+     * 使用 Google Visualization API 讀取已發佈的 Google Sheets
+     * 回傳 JSON 格式，跨域讀取最穩定
      */
     function getSheetURL(gid) {
-      return `https://docs.google.com/spreadsheets/d/e/${CONFIG.PUBLISHED_KEY}/pub?gid=${gid}&single=true&output=csv`;
+      return `https://docs.google.com/spreadsheets/d/${CONFIG.SHEET_ID}/gviz/tq?tqx=out:json&gid=${gid}`;
     }
 
     /**
-     * 解析 CSV 文字為陣列
-     * 處理引號內的逗號和換行符
+     * 解析 Google Visualization API 的 JSON 回應
+     * 回應格式為 JSONP：google.visualization.Query.setResponse({...})
+     * 回傳二維陣列（含標題列）
      */
-    function parseCSV(text) {
-      const rows = [];
-      let current = '';
-      let inQuotes = false;
-      const chars = text.split('');
+    function parseGvizResponse(text) {
+      // 去除 JSONP 包裝：/*O_o*/google.visualization.Query.setResponse({...});
+      const jsonStr = text.replace(/^[^(]*\(/, '').replace(/\);?\s*$/, '');
+      const data = JSON.parse(jsonStr);
 
-      for (let i = 0; i < chars.length; i++) {
-        const c = chars[i];
-        if (c === '"') {
-          if (inQuotes && chars[i + 1] === '"') {
-            current += '"';
-            i++;
-          } else {
-            inQuotes = !inQuotes;
-          }
-        } else if (c === ',' && !inQuotes) {
-          if (!rows.length || rows[rows.length - 1] === null) {
-            rows.push([current]);
-          } else {
-            rows[rows.length - 1].push(current);
-          }
-          current = '';
-        } else if ((c === '\n' || c === '\r') && !inQuotes) {
-          if (c === '\r' && chars[i + 1] === '\n') i++;
-          if (rows.length === 0) {
-            rows.push([current]);
-          } else {
-            rows[rows.length - 1].push(current);
-          }
-          current = '';
-          rows.push(null); // 標記新行開始
-        } else {
-          current += c;
-        }
-      }
+      if (data.status !== 'ok' || !data.table) return [];
 
-      // 處理最後一個欄位
-      if (current || (rows.length && rows[rows.length - 1] !== null)) {
-        if (!rows.length || rows[rows.length - 1] === null) {
-          rows.push([current]);
-        } else {
-          rows[rows.length - 1].push(current);
-        }
-      }
+      const cols = data.table.cols;
+      const rows = data.table.rows;
 
-      return rows.filter(r => r !== null && r.some(cell => cell.trim() !== ''));
+      // 標題列
+      const header = cols.map(c => c.label || '');
+      const result = [header];
+
+      // 資料列
+      rows.forEach(row => {
+        const cells = row.c.map(cell => {
+          if (!cell) return '';
+          // 優先使用格式化值（f），其次是原始值（v）
+          if (cell.f !== undefined && cell.f !== null) return String(cell.f);
+          if (cell.v !== undefined && cell.v !== null) return String(cell.v);
+          return '';
+        });
+        result.push(cells);
+      });
+
+      return result;
     }
 
     /**
@@ -467,7 +449,7 @@
         const res = await fetch(getSheetURL(CONFIG.TOUR_SHEET_GID));
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const text = await res.text();
-        const rows = parseCSV(text);
+        const rows = parseGvizResponse(text);
 
         if (rows.length < 2) {
           tourData = [];
@@ -506,7 +488,7 @@
         const res = await fetch(getSheetURL(CONFIG.QA_SHEET_GID));
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const text = await res.text();
-        const rows = parseCSV(text);
+        const rows = parseGvizResponse(text);
 
         if (rows.length < 2) {
           qaData = [];
