@@ -371,6 +371,9 @@
       // Google Sheet ID（原始試算表 ID）
       SHEET_ID: '1SlGXwWgjjqoywFYx3nkE-7YolFfdLkK-Q1JuaT4Kt5Y',
 
+      // Google Sheet 已發佈金鑰（備援用）
+      PUBLISHED_KEY: '2PACX-1vRs6O6yhomyci12NhBmog0EmqIJVRCL9qzBfLoCwY_A1NMwHXGfqbXw2yiH18kN61Sb09u6s_3rqfls',
+
       // 導覽記錄工作表 gid
       TOUR_SHEET_GID: '693491083',
 
@@ -400,45 +403,109 @@
     // ============================================================
 
     /**
-     * 使用 Google Visualization API 讀取已發佈的 Google Sheets
-     * 回傳 JSON 格式，跨域讀取最穩定
+     * 使用 JSONP script 注入方式讀取已發佈的 Google Sheets
+     * 備援方案：已發佈的 CSV 端點
      */
-    function getSheetURL(gid) {
-      return `https://docs.google.com/spreadsheets/d/${CONFIG.SHEET_ID}/gviz/tq?tqx=out:json&gid=${gid}`;
+    function loadSheetData(gid) {
+      return new Promise((resolve, reject) => {
+        const callbackName = '_gsheetCb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+        const script = document.createElement('script');
+
+        script.src = `https://docs.google.com/spreadsheets/d/${CONFIG.SHEET_ID}/gviz/tq?tqx=responseHandler:${callbackName}&gid=${gid}`;
+
+        const timeout = setTimeout(() => {
+          cleanup();
+          reject(new Error('載入逾時'));
+        }, 10000);
+
+        function cleanup() {
+          clearTimeout(timeout);
+          delete window[callbackName];
+          if (script.parentNode) script.parentNode.removeChild(script);
+        }
+
+        window[callbackName] = function(response) {
+          cleanup();
+          if (response.status === 'ok' && response.table) {
+            resolve(response.table);
+          } else {
+            reject(new Error(response.errors?.[0]?.message || '資料讀取失敗'));
+          }
+        };
+
+        script.onerror = function() {
+          cleanup();
+          reject(new Error('Script 載入失敗'));
+        };
+
+        document.head.appendChild(script);
+      });
     }
 
     /**
-     * 解析 Google Visualization API 的 JSON 回應
-     * 回應格式為 JSONP：google.visualization.Query.setResponse({...})
-     * 回傳二維陣列（含標題列）
+     * 備援：透過已發佈的 CSV 端點讀取資料
      */
-    function parseGvizResponse(text) {
-      // 去除 JSONP 包裝：/*O_o*/google.visualization.Query.setResponse({...});
-      const jsonStr = text.replace(/^[^(]*\(/, '').replace(/\);?\s*$/, '');
-      const data = JSON.parse(jsonStr);
+    async function loadSheetCSV(gid) {
+      const url = `https://docs.google.com/spreadsheets/d/e/${CONFIG.PUBLISHED_KEY}/pub?gid=${gid}&single=true&output=csv`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = await res.text();
+      return parseCSV(text);
+    }
 
-      if (data.status !== 'ok' || !data.table) return [];
+    /**
+     * 簡易 CSV 解析
+     */
+    function parseCSV(text) {
+      const rows = [];
+      let current = '';
+      let inQuotes = false;
+      const chars = text.split('');
 
-      const cols = data.table.cols;
-      const rows = data.table.rows;
+      for (let i = 0; i < chars.length; i++) {
+        const c = chars[i];
+        if (c === '"') {
+          if (inQuotes && chars[i + 1] === '"') { current += '"'; i++; }
+          else inQuotes = !inQuotes;
+        } else if (c === ',' && !inQuotes) {
+          if (!rows.length || rows[rows.length - 1] === null) rows.push([current]);
+          else rows[rows.length - 1].push(current);
+          current = '';
+        } else if ((c === '\n' || c === '\r') && !inQuotes) {
+          if (c === '\r' && chars[i + 1] === '\n') i++;
+          if (!rows.length || rows[rows.length - 1] === null) rows.push([current]);
+          else rows[rows.length - 1].push(current);
+          current = '';
+          rows.push(null);
+        } else {
+          current += c;
+        }
+      }
+      if (current || (rows.length && rows[rows.length - 1] !== null)) {
+        if (!rows.length || rows[rows.length - 1] === null) rows.push([current]);
+        else rows[rows.length - 1].push(current);
+      }
+      return rows.filter(r => r !== null && r.some(cell => cell.trim() !== ''));
+    }
 
-      // 標題列
-      const header = cols.map(c => c.label || '');
-      const result = [header];
+    /**
+     * 將 Google Visualization table 轉換為二維陣列
+     */
+    function tableToRows(table) {
+      const header = table.cols.map(c => c.label || '');
+      const rows = [header];
 
-      // 資料列
-      rows.forEach(row => {
+      table.rows.forEach(row => {
         const cells = row.c.map(cell => {
           if (!cell) return '';
-          // 優先使用格式化值（f），其次是原始值（v）
           if (cell.f !== undefined && cell.f !== null) return String(cell.f);
           if (cell.v !== undefined && cell.v !== null) return String(cell.v);
           return '';
         });
-        result.push(cells);
+        rows.push(cells);
       });
 
-      return result;
+      return rows;
     }
 
     /**
@@ -446,24 +513,30 @@
      */
     async function loadTourData() {
       try {
-        const res = await fetch(getSheetURL(CONFIG.TOUR_SHEET_GID));
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const text = await res.text();
-        const rows = parseGvizResponse(text);
+        let rows;
+
+        try {
+          // 優先使用 JSONP 方式
+          const table = await loadSheetData(CONFIG.TOUR_SHEET_GID);
+          rows = tableToRows(table);
+        } catch (e) {
+          // 備援：使用已發佈的 CSV
+          console.warn('JSONP 讀取失敗，切換 CSV 備援:', e.message);
+          rows = await loadSheetCSV(CONFIG.TOUR_SHEET_GID);
+        }
 
         if (rows.length < 2) {
           tourData = [];
           return;
         }
 
-        // 第一行是標題，跳過
         tourData = rows.slice(1).map((row, i) => ({
           session: row[0]?.trim() || String(i + 1),
           date: row[1]?.trim() || '',
           name: row[2]?.trim() || '',
           unit: row[3]?.trim() || '',
           people: parseInt(row[4]?.trim()) || 0,
-        })).filter(r => r.date || r.name || r.unit); // 過濾空行
+        })).filter(r => r.date || r.name || r.unit);
 
         filteredTourData = [...tourData];
       } catch (err) {
@@ -485,10 +558,15 @@
       }
 
       try {
-        const res = await fetch(getSheetURL(CONFIG.QA_SHEET_GID));
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const text = await res.text();
-        const rows = parseGvizResponse(text);
+        let rows;
+
+        try {
+          const table = await loadSheetData(CONFIG.QA_SHEET_GID);
+          rows = tableToRows(table);
+        } catch (e) {
+          console.warn('QA JSONP 讀取失敗，切換 CSV 備援:', e.message);
+          rows = await loadSheetCSV(CONFIG.QA_SHEET_GID);
+        }
 
         if (rows.length < 2) {
           qaData = [];
