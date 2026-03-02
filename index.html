@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>新北市資源教育基地 - 導覽統計儀表板</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#1E40AF',
+            'primary-light': '#3B82F6',
+            accent: '#F59E0B',
+            'accent-light': '#FCD34D',
+            surface: '#F8FAFC',
+            'text-primary': '#1E3A8A',
+            'text-secondary': '#64748B',
+          },
+          fontFamily: {
+            sans: ['Fira Sans', 'Noto Sans TC', 'sans-serif'],
+            mono: ['Fira Code', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    body {
+      font-family: 'Fira Sans', 'Noto Sans TC', sans-serif;
+      background-color: #F8FAFC;
+      color: #1E3A8A;
+    }
+
+    /* 骨架屏動畫 */
+    .skeleton {
+      background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s ease-in-out infinite;
+      border-radius: 0.5rem;
+    }
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* KPI 卡片 hover */
+    .kpi-card {
+      transition: transform 150ms ease, box-shadow 150ms ease;
+    }
+    .kpi-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px -5px rgba(30, 64, 175, 0.15);
+    }
+
+    /* 表格行 hover */
+    .data-row:hover {
+      background-color: #EFF6FF;
+    }
+
+    /* 手風琴動畫 */
+    .accordion-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 300ms ease-out, padding 300ms ease-out;
+    }
+    .accordion-content.open {
+      max-height: 500px;
+      padding-top: 0.75rem;
+      padding-bottom: 0.75rem;
+    }
+
+    /* 篩選按鈕 */
+    .filter-btn {
+      transition: all 150ms ease;
+    }
+    .filter-btn.active {
+      background-color: #1E40AF;
+      color: white;
+    }
+
+    /* 分頁 */
+    .page-btn {
+      transition: all 150ms ease;
+    }
+    .page-btn.active {
+      background-color: #1E40AF;
+      color: white;
+    }
+
+    /* 響應式滾動表格 */
+    .table-wrapper {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* 搜尋欄位焦點 */
+    .search-input:focus {
+      outline: none;
+      border-color: #3B82F6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    }
+
+    /* Tab 切換 */
+    .tab-btn {
+      transition: all 200ms ease;
+      position: relative;
+    }
+    .tab-btn.active {
+      color: #1E40AF;
+      font-weight: 600;
+    }
+    .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background-color: #1E40AF;
+      border-radius: 3px 3px 0 0;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .skeleton, .kpi-card, .accordion-content, .filter-btn, .tab-btn {
+        animation: none;
+        transition: none;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <!-- 頂部導覽列 -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+            <i data-lucide="bar-chart-3" class="w-6 h-6 text-white"></i>
+          </div>
+          <div>
+            <h1 class="text-lg font-bold text-text-primary">新北市資源教育基地</h1>
+            <p class="text-xs text-text-secondary -mt-0.5">導覽統計儀表板</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span id="lastUpdate" class="text-xs text-text-secondary hidden sm:inline"></span>
+          <button onclick="refreshData()" class="p-2 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer" title="重新整理">
+            <i data-lucide="refresh-cw" class="w-4 h-4 text-text-secondary" id="refreshIcon"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- 主內容 -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- Tab 切換：導覽統計 / 導覽 QA -->
+    <div class="border-b border-slate-200">
+      <nav class="flex gap-8">
+        <button class="tab-btn active pb-3 text-sm cursor-pointer" data-tab="stats" onclick="switchTab('stats')">
+          <span class="flex items-center gap-2">
+            <i data-lucide="trending-up" class="w-4 h-4"></i>
+            導覽統計
+          </span>
+        </button>
+        <button class="tab-btn pb-3 text-sm text-text-secondary cursor-pointer" data-tab="qa" onclick="switchTab('qa')">
+          <span class="flex items-center gap-2">
+            <i data-lucide="help-circle" class="w-4 h-4"></i>
+            導覽 QA
+          </span>
+        </button>
+      </nav>
+    </div>
+
+    <!-- ===== 導覽統計 Tab ===== -->
+    <div id="tab-stats">
+
+      <!-- KPI 統計卡片 -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <!-- 總場次 -->
+        <div class="kpi-card bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-medium text-text-secondary uppercase tracking-wider">總場次</span>
+            <div class="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+              <i data-lucide="calendar" class="w-4 h-4 text-primary"></i>
+            </div>
+          </div>
+          <div id="kpi-sessions" class="text-3xl font-bold font-mono text-text-primary">
+            <div class="skeleton h-9 w-20"></div>
+          </div>
+          <p class="text-xs text-text-secondary mt-1">場</p>
+        </div>
+
+        <!-- 總人數 -->
+        <div class="kpi-card bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-medium text-text-secondary uppercase tracking-wider">總人數</span>
+            <div class="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center">
+              <i data-lucide="users" class="w-4 h-4 text-accent"></i>
+            </div>
+          </div>
+          <div id="kpi-people" class="text-3xl font-bold font-mono text-text-primary">
+            <div class="skeleton h-9 w-24"></div>
+          </div>
+          <p class="text-xs text-text-secondary mt-1">人次</p>
+        </div>
+
+        <!-- 平均人數 -->
+        <div class="kpi-card bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-medium text-text-secondary uppercase tracking-wider">平均人數</span>
+            <div class="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center">
+              <i data-lucide="divide" class="w-4 h-4 text-green-600"></i>
+            </div>
+          </div>
+          <div id="kpi-avg" class="text-3xl font-bold font-mono text-text-primary">
+            <div class="skeleton h-9 w-16"></div>
+          </div>
+          <p class="text-xs text-text-secondary mt-1">人/場</p>
+        </div>
+
+        <!-- 本月場次 -->
+        <div class="kpi-card bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-medium text-text-secondary uppercase tracking-wider">本月場次</span>
+            <div class="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
+              <i data-lucide="calendar-check" class="w-4 h-4 text-purple-600"></i>
+            </div>
+          </div>
+          <div id="kpi-month" class="text-3xl font-bold font-mono text-text-primary">
+            <div class="skeleton h-9 w-12"></div>
+          </div>
+          <p class="text-xs text-text-secondary mt-1">場</p>
+        </div>
+      </div>
+
+      <!-- 圖表區 -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <!-- 月度趨勢圖 -->
+        <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+          <h3 class="text-sm font-semibold text-text-primary mb-4">月度導覽趨勢</h3>
+          <div class="relative" style="height: 280px;">
+            <canvas id="chartMonthly"></canvas>
+          </div>
+        </div>
+
+        <!-- 單位別統計 -->
+        <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+          <h3 class="text-sm font-semibold text-text-primary mb-4">單位別統計（前 10 名）</h3>
+          <div class="relative" style="height: 280px;">
+            <canvas id="chartUnit"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- 導覽記錄表格 -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm">
+        <div class="p-5 border-b border-slate-100">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <h3 class="text-sm font-semibold text-text-primary">導覽記錄</h3>
+            <div class="flex items-center gap-2">
+              <div class="relative">
+                <i data-lucide="search" class="w-4 h-4 text-text-secondary absolute left-3 top-1/2 -translate-y-1/2"></i>
+                <input
+                  type="text"
+                  id="searchInput"
+                  placeholder="搜尋名稱、單位..."
+                  class="search-input pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-lg w-full sm:w-64 transition-all"
+                  oninput="filterTable()"
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="table-wrapper">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="bg-slate-50 text-left">
+                <th class="px-5 py-3 font-semibold text-text-secondary text-xs uppercase tracking-wider cursor-pointer hover:text-primary" onclick="sortTable(0)">場次 <i data-lucide="arrow-up-down" class="w-3 h-3 inline"></i></th>
+                <th class="px-5 py-3 font-semibold text-text-secondary text-xs uppercase tracking-wider cursor-pointer hover:text-primary" onclick="sortTable(1)">日期 <i data-lucide="arrow-up-down" class="w-3 h-3 inline"></i></th>
+                <th class="px-5 py-3 font-semibold text-text-secondary text-xs uppercase tracking-wider">名稱</th>
+                <th class="px-5 py-3 font-semibold text-text-secondary text-xs uppercase tracking-wider">單位</th>
+                <th class="px-5 py-3 font-semibold text-text-secondary text-xs uppercase tracking-wider text-right cursor-pointer hover:text-primary" onclick="sortTable(4)">實際人數 <i data-lucide="arrow-up-down" class="w-3 h-3 inline"></i></th>
+              </tr>
+            </thead>
+            <tbody id="tableBody">
+              <!-- 骨架屏 -->
+              <tr><td colspan="5" class="p-5"><div class="skeleton h-8 w-full mb-2"></div><div class="skeleton h-8 w-full mb-2"></div><div class="skeleton h-8 w-full"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <!-- 分頁 -->
+        <div class="px-5 py-3 border-t border-slate-100 flex items-center justify-between">
+          <span id="pageInfo" class="text-xs text-text-secondary"></span>
+          <div id="pagination" class="flex gap-1"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 導覽 QA Tab ===== -->
+    <div id="tab-qa" class="hidden">
+
+      <!-- QA 分類篩選 -->
+      <div class="flex flex-wrap gap-2 mb-4">
+        <button class="filter-btn active px-4 py-1.5 text-sm rounded-full border border-slate-200 bg-white cursor-pointer" onclick="filterQA('all')">全部</button>
+        <div id="qaCategoryFilters" class="flex flex-wrap gap-2">
+          <!-- 動態生成分類按鈕 -->
+        </div>
+      </div>
+
+      <!-- QA 搜尋 -->
+      <div class="relative mb-4">
+        <i data-lucide="search" class="w-4 h-4 text-text-secondary absolute left-3 top-1/2 -translate-y-1/2"></i>
+        <input
+          type="text"
+          id="qaSearchInput"
+          placeholder="搜尋問題或答案..."
+          class="search-input pl-9 pr-4 py-2.5 text-sm border border-slate-200 rounded-lg w-full transition-all"
+          oninput="filterQABySearch()"
+        >
+      </div>
+
+      <!-- QA 手風琴列表 -->
+      <div id="qaList" class="space-y-3">
+        <div class="skeleton h-16 w-full"></div>
+        <div class="skeleton h-16 w-full"></div>
+        <div class="skeleton h-16 w-full"></div>
+      </div>
+
+      <!-- QA 空狀態 -->
+      <div id="qaEmpty" class="hidden text-center py-16">
+        <i data-lucide="inbox" class="w-12 h-12 text-slate-300 mx-auto mb-3"></i>
+        <p class="text-text-secondary text-sm">尚無 QA 資料</p>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- 頁尾 -->
+  <footer class="border-t border-slate-200 mt-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <p class="text-xs text-text-secondary text-center">
+        新北市資源教育基地 導覽統計系統 &copy; <span id="footerYear"></span>
+      </p>
+    </div>
+  </footer>
+
+  <script>
+    // ============================================================
+    // 設定區 - 修改這裡的 Google Sheets 資訊
+    // ============================================================
+    const CONFIG = {
+      // Google Sheet 已發佈金鑰（從發佈網址取得）
+      PUBLISHED_KEY: '2PACX-1vRs6O6yhomyci12NhBmog0EmqIJVRCL9qzBfLoCwY_A1NMwHXGfqbXw2yiH18kN61Sb09u6s_3rqfls',
+
+      // 導覽記錄工作表 gid
+      TOUR_SHEET_GID: '693491083',
+
+      // 導覽 QA 工作表 gid（日後新增 QA 工作表後填入）
+      QA_SHEET_GID: '',
+
+      // 每頁顯示筆數
+      PAGE_SIZE: 15,
+    };
+
+    // ============================================================
+    // 全域狀態
+    // ============================================================
+    let tourData = [];         // 導覽記錄原始資料
+    let qaData = [];           // QA 原始資料
+    let filteredTourData = []; // 篩選後的導覽資料
+    let filteredQAData = [];   // 篩選後的 QA 資料
+    let currentPage = 1;
+    let sortCol = -1;
+    let sortAsc = true;
+    let activeQAFilter = 'all';
+    let monthlyChart = null;
+    let unitChart = null;
+
+    // ============================================================
+    // 資料載入
+    // ============================================================
+
+    /**
+     * 從已發佈的 Google Sheets 取得 CSV 資料
+     * 需要先在 Google Sheets 執行「檔案 > 共用 > 發佈到網路」
+     */
+    function getSheetURL(gid) {
+      return `https://docs.google.com/spreadsheets/d/e/${CONFIG.PUBLISHED_KEY}/pub?gid=${gid}&single=true&output=csv`;
+    }
+
+    /**
+     * 解析 CSV 文字為陣列
+     * 處理引號內的逗號和換行符
+     */
+    function parseCSV(text) {
+      const rows = [];
+      let current = '';
+      let inQuotes = false;
+      const chars = text.split('');
+
+      for (let i = 0; i < chars.length; i++) {
+        const c = chars[i];
+        if (c === '"') {
+          if (inQuotes && chars[i + 1] === '"') {
+            current += '"';
+            i++;
+          } else {
+            inQuotes = !inQuotes;
+          }
+        } else if (c === ',' && !inQuotes) {
+          if (!rows.length || rows[rows.length - 1] === null) {
+            rows.push([current]);
+          } else {
+            rows[rows.length - 1].push(current);
+          }
+          current = '';
+        } else if ((c === '\n' || c === '\r') && !inQuotes) {
+          if (c === '\r' && chars[i + 1] === '\n') i++;
+          if (rows.length === 0) {
+            rows.push([current]);
+          } else {
+            rows[rows.length - 1].push(current);
+          }
+          current = '';
+          rows.push(null); // 標記新行開始
+        } else {
+          current += c;
+        }
+      }
+
+      // 處理最後一個欄位
+      if (current || (rows.length && rows[rows.length - 1] !== null)) {
+        if (!rows.length || rows[rows.length - 1] === null) {
+          rows.push([current]);
+        } else {
+          rows[rows.length - 1].push(current);
+        }
+      }
+
+      return rows.filter(r => r !== null && r.some(cell => cell.trim() !== ''));
+    }
+
+    /**
+     * 載入導覽記錄資料
+     */
+    async function loadTourData() {
+      try {
+        const res = await fetch(getSheetURL(CONFIG.TOUR_SHEET_GID));
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const text = await res.text();
+        const rows = parseCSV(text);
+
+        if (rows.length < 2) {
+          tourData = [];
+          return;
+        }
+
+        // 第一行是標題，跳過
+        tourData = rows.slice(1).map((row, i) => ({
+          session: row[0]?.trim() || String(i + 1),
+          date: row[1]?.trim() || '',
+          name: row[2]?.trim() || '',
+          unit: row[3]?.trim() || '',
+          people: parseInt(row[4]?.trim()) || 0,
+        })).filter(r => r.date || r.name || r.unit); // 過濾空行
+
+        filteredTourData = [...tourData];
+      } catch (err) {
+        console.error('載入導覽記錄失敗:', err);
+        tourData = [];
+        filteredTourData = [];
+      }
+    }
+
+    /**
+     * 載入 QA 資料
+     */
+    async function loadQAData() {
+      // QA 工作表 gid 尚未設定，跳過
+      if (!CONFIG.QA_SHEET_GID) {
+        qaData = [];
+        filteredQAData = [];
+        return;
+      }
+
+      try {
+        const res = await fetch(getSheetURL(CONFIG.QA_SHEET_GID));
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const text = await res.text();
+        const rows = parseCSV(text);
+
+        if (rows.length < 2) {
+          qaData = [];
+          return;
+        }
+
+        qaData = rows.slice(1).map((row, i) => ({
+          id: row[0]?.trim() || String(i + 1),
+          question: row[1]?.trim() || '',
+          answer: row[2]?.trim() || '',
+          category: row[3]?.trim() || '未分類',
+        })).filter(r => r.question);
+
+        filteredQAData = [...qaData];
+      } catch (err) {
+        console.error('載入 QA 資料失敗:', err);
+        qaData = [];
+        filteredQAData = [];
+      }
+    }
+
+    // ============================================================
+    // 渲染 KPI
+    // ============================================================
+    function renderKPIs() {
+      const totalSessions = tourData.length;
+      const totalPeople = tourData.reduce((sum, r) => sum + r.people, 0);
+      const avg = totalSessions > 0 ? (totalPeople / totalSessions).toFixed(1) : '0';
+
+      // 計算本月場次
+      const now = new Date();
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
+      const monthSessions = tourData.filter(r => {
+        const d = parseDate(r.date);
+        return d && d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+      }).length;
+
+      document.getElementById('kpi-sessions').textContent = totalSessions.toLocaleString();
+      document.getElementById('kpi-people').textContent = totalPeople.toLocaleString();
+      document.getElementById('kpi-avg').textContent = avg;
+      document.getElementById('kpi-month').textContent = monthSessions.toLocaleString();
+    }
+
+    /**
+     * 解析各種日期格式
+     */
+    function parseDate(str) {
+      if (!str) return null;
+      // 嘗試 yyyy/MM/dd、yyyy-MM-dd、MM/dd、M/d 等格式
+      let d;
+
+      // yyyy/MM/dd 或 yyyy-MM-dd
+      d = new Date(str.replace(/\//g, '-'));
+      if (!isNaN(d.getTime())) return d;
+
+      // MM/dd（補上今年）
+      const parts = str.split(/[\/\-\.]/);
+      if (parts.length === 2) {
+        const month = parseInt(parts[0]) - 1;
+        const day = parseInt(parts[1]);
+        d = new Date(new Date().getFullYear(), month, day);
+        if (!isNaN(d.getTime())) return d;
+      }
+
+      // 帶有中文的格式：3月5日
+      const match = str.match(/(\d{1,2})\s*月\s*(\d{1,2})\s*日?/);
+      if (match) {
+        d = new Date(new Date().getFullYear(), parseInt(match[1]) - 1, parseInt(match[2]));
+        if (!isNaN(d.getTime())) return d;
+      }
+
+      return null;
+    }
+
+    // ============================================================
+    // 渲染圖表
+    // ============================================================
+    function renderCharts() {
+      renderMonthlyChart();
+      renderUnitChart();
+    }
+
+    function renderMonthlyChart() {
+      // 按月份統計
+      const monthMap = {};
+      tourData.forEach(r => {
+        const d = parseDate(r.date);
+        if (!d) return;
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        if (!monthMap[key]) monthMap[key] = { sessions: 0, people: 0 };
+        monthMap[key].sessions++;
+        monthMap[key].people += r.people;
+      });
+
+      const sortedKeys = Object.keys(monthMap).sort();
+      const labels = sortedKeys.map(k => {
+        const [y, m] = k.split('-');
+        return `${parseInt(m)}月`;
+      });
+
+      const ctx = document.getElementById('chartMonthly');
+      if (monthlyChart) monthlyChart.destroy();
+
+      monthlyChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: '人數',
+              data: sortedKeys.map(k => monthMap[k].people),
+              borderColor: '#1E40AF',
+              backgroundColor: 'rgba(30, 64, 175, 0.08)',
+              fill: true,
+              tension: 0.3,
+              pointBackgroundColor: '#1E40AF',
+              pointRadius: 4,
+              pointHoverRadius: 6,
+            },
+            {
+              label: '場次',
+              data: sortedKeys.map(k => monthMap[k].sessions),
+              borderColor: '#F59E0B',
+              backgroundColor: 'transparent',
+              borderDash: [5, 5],
+              tension: 0.3,
+              pointBackgroundColor: '#F59E0B',
+              pointRadius: 4,
+              pointHoverRadius: 6,
+              yAxisID: 'y1',
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { position: 'top', labels: { usePointStyle: true, padding: 16, font: { size: 12 } } },
+            tooltip: {
+              backgroundColor: '#1E3A8A',
+              titleFont: { size: 13 },
+              bodyFont: { size: 12 },
+              padding: 12,
+              cornerRadius: 8,
+            }
+          },
+          scales: {
+            y: {
+              title: { display: true, text: '人數', font: { size: 11 } },
+              ticks: { font: { size: 11 } },
+              grid: { color: 'rgba(0,0,0,0.04)' },
+            },
+            y1: {
+              position: 'right',
+              title: { display: true, text: '場次', font: { size: 11 } },
+              ticks: { font: { size: 11 }, stepSize: 1 },
+              grid: { display: false },
+            },
+            x: {
+              ticks: { font: { size: 11 } },
+              grid: { display: false },
+            }
+          }
+        }
+      });
+    }
+
+    function renderUnitChart() {
+      // 按單位統計，取前 10
+      const unitMap = {};
+      tourData.forEach(r => {
+        if (!r.unit) return;
+        if (!unitMap[r.unit]) unitMap[r.unit] = 0;
+        unitMap[r.unit] += r.people;
+      });
+
+      const sorted = Object.entries(unitMap)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10);
+
+      const ctx = document.getElementById('chartUnit');
+      if (unitChart) unitChart.destroy();
+
+      const colors = [
+        '#1E40AF', '#3B82F6', '#60A5FA', '#93C5FD', '#BFDBFE',
+        '#F59E0B', '#FBBF24', '#FCD34D', '#FDE68A', '#FEF3C7'
+      ];
+
+      unitChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: sorted.map(([unit]) => unit.length > 8 ? unit.slice(0, 8) + '...' : unit),
+          datasets: [{
+            label: '總人數',
+            data: sorted.map(([, count]) => count),
+            backgroundColor: colors.slice(0, sorted.length),
+            borderRadius: 6,
+            borderSkipped: false,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          indexAxis: 'y',
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#1E3A8A',
+              callbacks: {
+                title: (items) => {
+                  const idx = items[0].dataIndex;
+                  return sorted[idx][0]; // 顯示完整名稱
+                },
+                label: (item) => ` ${item.raw.toLocaleString()} 人次`
+              }
+            }
+          },
+          scales: {
+            x: {
+              ticks: { font: { size: 11 } },
+              grid: { color: 'rgba(0,0,0,0.04)' },
+            },
+            y: {
+              ticks: { font: { size: 11 } },
+              grid: { display: false },
+            }
+          }
+        }
+      });
+    }
+
+    // ============================================================
+    // 渲染表格
+    // ============================================================
+    function renderTable() {
+      const tbody = document.getElementById('tableBody');
+      const start = (currentPage - 1) * CONFIG.PAGE_SIZE;
+      const end = start + CONFIG.PAGE_SIZE;
+      const pageData = filteredTourData.slice(start, end);
+
+      if (pageData.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="5" class="px-5 py-12 text-center text-text-secondary text-sm">
+              <div class="flex flex-col items-center">
+                <svg class="w-10 h-10 text-slate-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+                </svg>
+                尚無資料
+              </div>
+            </td>
+          </tr>`;
+      } else {
+        tbody.innerHTML = pageData.map(r => `
+          <tr class="data-row border-b border-slate-50 transition-colors">
+            <td class="px-5 py-3 font-mono text-sm font-medium">${escapeHTML(r.session)}</td>
+            <td class="px-5 py-3 text-sm">${escapeHTML(r.date)}</td>
+            <td class="px-5 py-3 text-sm">${escapeHTML(r.name)}</td>
+            <td class="px-5 py-3 text-sm">${escapeHTML(r.unit)}</td>
+            <td class="px-5 py-3 text-sm text-right font-mono font-medium">${r.people.toLocaleString()}</td>
+          </tr>
+        `).join('');
+      }
+
+      // 分頁資訊
+      const totalPages = Math.max(1, Math.ceil(filteredTourData.length / CONFIG.PAGE_SIZE));
+      document.getElementById('pageInfo').textContent =
+        `共 ${filteredTourData.length} 筆，第 ${currentPage}/${totalPages} 頁`;
+
+      // 分頁按鈕
+      const pag = document.getElementById('pagination');
+      let pagHTML = '';
+      if (totalPages > 1) {
+        pagHTML += `<button class="page-btn px-3 py-1 text-xs rounded border border-slate-200 cursor-pointer ${currentPage === 1 ? 'opacity-40 cursor-not-allowed' : 'hover:bg-slate-100'}" onclick="goPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>&laquo;</button>`;
+
+        for (let i = 1; i <= totalPages; i++) {
+          if (totalPages > 7 && i > 3 && i < totalPages - 1 && Math.abs(i - currentPage) > 1) {
+            if (i === 4 || i === totalPages - 2) pagHTML += `<span class="px-1 text-xs text-text-secondary">...</span>`;
+            continue;
+          }
+          pagHTML += `<button class="page-btn px-3 py-1 text-xs rounded border border-slate-200 cursor-pointer ${i === currentPage ? 'active' : 'hover:bg-slate-100'}" onclick="goPage(${i})">${i}</button>`;
+        }
+
+        pagHTML += `<button class="page-btn px-3 py-1 text-xs rounded border border-slate-200 cursor-pointer ${currentPage === totalPages ? 'opacity-40 cursor-not-allowed' : 'hover:bg-slate-100'}" onclick="goPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>&raquo;</button>`;
+      }
+      pag.innerHTML = pagHTML;
+    }
+
+    function goPage(page) {
+      const totalPages = Math.ceil(filteredTourData.length / CONFIG.PAGE_SIZE);
+      if (page < 1 || page > totalPages) return;
+      currentPage = page;
+      renderTable();
+    }
+
+    // ============================================================
+    // 表格搜尋與排序
+    // ============================================================
+    function filterTable() {
+      const q = document.getElementById('searchInput').value.trim().toLowerCase();
+      filteredTourData = tourData.filter(r =>
+        !q ||
+        r.name.toLowerCase().includes(q) ||
+        r.unit.toLowerCase().includes(q) ||
+        r.date.includes(q) ||
+        r.session.includes(q)
+      );
+      currentPage = 1;
+      renderTable();
+    }
+
+    function sortTable(colIdx) {
+      if (sortCol === colIdx) {
+        sortAsc = !sortAsc;
+      } else {
+        sortCol = colIdx;
+        sortAsc = true;
+      }
+
+      const keys = ['session', 'date', 'name', 'unit', 'people'];
+      const key = keys[colIdx];
+
+      filteredTourData.sort((a, b) => {
+        let va = a[key], vb = b[key];
+
+        if (key === 'people') {
+          return sortAsc ? va - vb : vb - va;
+        }
+        if (key === 'date') {
+          const da = parseDate(va), db = parseDate(vb);
+          if (da && db) return sortAsc ? da - db : db - da;
+        }
+        if (key === 'session') {
+          const na = parseInt(va), nb = parseInt(vb);
+          if (!isNaN(na) && !isNaN(nb)) return sortAsc ? na - nb : nb - na;
+        }
+
+        va = String(va).toLowerCase();
+        vb = String(vb).toLowerCase();
+        return sortAsc ? va.localeCompare(vb, 'zh-TW') : vb.localeCompare(va, 'zh-TW');
+      });
+
+      currentPage = 1;
+      renderTable();
+    }
+
+    // ============================================================
+    // QA 渲染
+    // ============================================================
+    function renderQA() {
+      const container = document.getElementById('qaList');
+      const emptyState = document.getElementById('qaEmpty');
+
+      // 分類按鈕
+      const categories = [...new Set(qaData.map(r => r.category))];
+      const filterContainer = document.getElementById('qaCategoryFilters');
+      filterContainer.innerHTML = categories.map(cat =>
+        `<button class="filter-btn px-4 py-1.5 text-sm rounded-full border border-slate-200 bg-white cursor-pointer" onclick="filterQA('${escapeHTML(cat)}')">${escapeHTML(cat)}</button>`
+      ).join('');
+
+      renderQAList();
+    }
+
+    function renderQAList() {
+      const container = document.getElementById('qaList');
+      const emptyState = document.getElementById('qaEmpty');
+
+      if (filteredQAData.length === 0) {
+        container.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+      container.innerHTML = filteredQAData.map((item, i) => `
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <button
+            class="w-full px-5 py-4 flex items-center justify-between text-left cursor-pointer hover:bg-slate-50 transition-colors"
+            onclick="toggleAccordion(${i})"
+          >
+            <div class="flex items-center gap-3">
+              <span class="flex-shrink-0 w-7 h-7 bg-blue-50 rounded-full flex items-center justify-center text-xs font-bold text-primary font-mono">${escapeHTML(item.id)}</span>
+              <span class="text-sm font-medium text-text-primary">${escapeHTML(item.question)}</span>
+            </div>
+            <div class="flex items-center gap-2 flex-shrink-0 ml-3">
+              <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-text-secondary">${escapeHTML(item.category)}</span>
+              <i data-lucide="chevron-down" class="w-4 h-4 text-text-secondary transition-transform accordion-icon-${i}"></i>
+            </div>
+          </button>
+          <div class="accordion-content px-5 border-t border-slate-100" id="accordion-${i}">
+            <p class="text-sm text-text-secondary leading-relaxed pl-10">${escapeHTML(item.answer)}</p>
+          </div>
+        </div>
+      `).join('');
+
+      // 重新初始化 Lucide 圖示
+      lucide.createIcons();
+    }
+
+    function toggleAccordion(index) {
+      const el = document.getElementById(`accordion-${index}`);
+      const icon = document.querySelector(`.accordion-icon-${index}`);
+      el.classList.toggle('open');
+      if (icon) {
+        icon.style.transform = el.classList.contains('open') ? 'rotate(180deg)' : '';
+      }
+    }
+
+    function filterQA(category) {
+      activeQAFilter = category;
+
+      // 更新按鈕狀態
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (
+          (category === 'all' && btn.textContent.trim() === '全部') ||
+          btn.textContent.trim() === category
+        ) {
+          btn.classList.add('active');
+        }
+      });
+
+      applyQAFilters();
+    }
+
+    function filterQABySearch() {
+      applyQAFilters();
+    }
+
+    function applyQAFilters() {
+      const q = document.getElementById('qaSearchInput').value.trim().toLowerCase();
+
+      filteredQAData = qaData.filter(r => {
+        const matchCat = activeQAFilter === 'all' || r.category === activeQAFilter;
+        const matchSearch = !q ||
+          r.question.toLowerCase().includes(q) ||
+          r.answer.toLowerCase().includes(q);
+        return matchCat && matchSearch;
+      });
+
+      renderQAList();
+    }
+
+    // ============================================================
+    // Tab 切換
+    // ============================================================
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tab);
+        if (btn.dataset.tab !== tab) {
+          btn.classList.add('text-text-secondary');
+        } else {
+          btn.classList.remove('text-text-secondary');
+        }
+      });
+
+      document.getElementById('tab-stats').classList.toggle('hidden', tab !== 'stats');
+      document.getElementById('tab-qa').classList.toggle('hidden', tab !== 'qa');
+    }
+
+    // ============================================================
+    // 工具函式
+    // ============================================================
+    function escapeHTML(str) {
+      if (!str) return '';
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    // ============================================================
+    // 初始化與重新整理
+    // ============================================================
+    async function refreshData() {
+      const icon = document.getElementById('refreshIcon');
+      icon.style.animation = 'spin 1s linear infinite';
+
+      await Promise.all([loadTourData(), loadQAData()]);
+
+      renderKPIs();
+      renderCharts();
+      filterTable(); // 套用搜尋篩選
+      renderQA();
+
+      icon.style.animation = '';
+
+      const now = new Date();
+      document.getElementById('lastUpdate').textContent =
+        `最後更新：${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+      document.getElementById('lastUpdate').classList.remove('hidden');
+    }
+
+    // 頁面載入
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('footerYear').textContent = new Date().getFullYear();
+      lucide.createIcons();
+      refreshData();
+    });
+  </script>
+</body>
+</html>

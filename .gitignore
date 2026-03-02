@@ -1,0 +1,26 @@
+# 暫存檔
+tmpclaude-*
+*.tmp
+
+# 系統檔案
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 編輯器
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 環境變數（如有）
+.env
+.env.local
+
+# Node（如有）
+node_modules/
+
+# 敏感資訊
+service_account.json
+*.pem
+*.key
