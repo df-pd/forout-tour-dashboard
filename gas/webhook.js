@@ -302,6 +302,7 @@ function appendTourRecord(data) {
       data.date,
       data.name,
       data.unit,
+      '',           // 報名人數（LINE 訊息通常不含此資訊，留空）
       data.people,
     ]);
   } catch (error) {
