@@ -355,8 +355,150 @@
 
   </main>
 
+  <!-- ==================== 廢棄物管理系統推廣區 ==================== -->
+  <section class="mt-12 relative overflow-hidden">
+    <!-- 漸層背景 -->
+    <div class="absolute inset-0 bg-gradient-to-br from-emerald-700 via-emerald-800 to-teal-900"></div>
+    <div class="absolute inset-0 opacity-10" aria-hidden="true">
+      <div class="absolute top-0 right-0 w-96 h-96 bg-[radial-gradient(circle,rgba(52,211,153,0.4)_0%,transparent_70%)] rounded-full translate-x-1/3 -translate-y-1/4"></div>
+      <div class="absolute bottom-0 left-0 w-72 h-72 bg-[radial-gradient(circle,rgba(14,165,233,0.3)_0%,transparent_70%)] rounded-full -translate-x-1/4 translate-y-1/3"></div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16 relative">
+      <div class="grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-12 items-start">
+
+        <!-- 左側：推廣文案（占 3 欄） -->
+        <div class="lg:col-span-3 text-white">
+          <!-- 標籤 -->
+          <span class="inline-flex items-center gap-1.5 text-xs font-bold bg-white/15 backdrop-blur-sm text-emerald-100 px-3 py-1 rounded-full">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+            AI 智慧管理新時代
+          </span>
+
+          <!-- 主標題 -->
+          <h2 class="mt-5 text-2xl sm:text-3xl lg:text-4xl font-bold leading-tight">
+            告別繁瑣操作<br>
+            <span class="text-emerald-300">擁抱智慧廢棄物管理</span>
+          </h2>
+
+          <!-- 副標題 -->
+          <p class="mt-4 text-emerald-100/80 text-sm sm:text-base leading-relaxed max-w-xl">
+            還在為傳統系統的複雜操作與不佳的使用者體驗煩惱嗎？立即諮詢，為您打造具備 AI 亮點的廢棄物資訊管理系統，讓管理效率大幅提升。
+          </p>
+
+          <!-- 特色亮點 -->
+          <div class="mt-6 grid grid-cols-2 gap-3">
+            <div class="flex items-center gap-2.5 bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2.5">
+              <div class="w-8 h-8 bg-emerald-400/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                <i data-lucide="sparkles" class="w-4 h-4 text-emerald-300"></i>
+              </div>
+              <span class="text-xs sm:text-sm font-medium text-white">AI 智慧分析</span>
+            </div>
+            <div class="flex items-center gap-2.5 bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2.5">
+              <div class="w-8 h-8 bg-emerald-400/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                <i data-lucide="layout-dashboard" class="w-4 h-4 text-emerald-300"></i>
+              </div>
+              <span class="text-xs sm:text-sm font-medium text-white">直覺操作介面</span>
+            </div>
+            <div class="flex items-center gap-2.5 bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2.5">
+              <div class="w-8 h-8 bg-emerald-400/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                <i data-lucide="activity" class="w-4 h-4 text-emerald-300"></i>
+              </div>
+              <span class="text-xs sm:text-sm font-medium text-white">即時數據追蹤</span>
+            </div>
+            <div class="flex items-center gap-2.5 bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2.5">
+              <div class="w-8 h-8 bg-emerald-400/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                <i data-lucide="rocket" class="w-4 h-4 text-emerald-300"></i>
+              </div>
+              <span class="text-xs sm:text-sm font-medium text-white">快速導入部署</span>
+            </div>
+          </div>
+
+          <!-- 聯絡資訊 -->
+          <div class="mt-6 pt-5 border-t border-white/15 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
+            <div class="flex items-center gap-2">
+              <i data-lucide="building-2" class="w-4 h-4 text-emerald-300"></i>
+              <span class="text-sm text-emerald-100">大豐環保科技股份有限公司</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <i data-lucide="user" class="w-4 h-4 text-emerald-300"></i>
+              <span class="text-sm text-emerald-100">葉庭誠 管理師</span>
+            </div>
+            <a href="tel:0983526761" class="cursor-pointer inline-flex items-center gap-2 text-sm font-bold text-white hover:text-emerald-300 transition-colors">
+              <i data-lucide="phone" class="w-4 h-4"></i>
+              0983-526-761
+            </a>
+          </div>
+        </div>
+
+        <!-- 右側：諮詢表單（占 2 欄） -->
+        <div class="lg:col-span-2">
+          <div id="promo-form-container">
+            <form id="promo-contact-form" class="bg-white rounded-2xl p-5 sm:p-6 shadow-2xl shadow-black/20">
+              <h3 class="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <i data-lucide="message-circle" class="w-5 h-5 text-emerald-600"></i>
+                快速諮詢
+              </h3>
+
+              <div class="space-y-3">
+                <!-- 公司名稱 -->
+                <div>
+                  <label for="promo-company" class="block text-xs font-semibold text-slate-600 mb-1">公司名稱 <span class="text-red-500">*</span></label>
+                  <input type="text" id="promo-company" required placeholder="請輸入公司名稱"
+                    class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-colors text-slate-800 placeholder:text-slate-400">
+                </div>
+
+                <!-- 聯絡人 + 電話 並排 -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label for="promo-name" class="block text-xs font-semibold text-slate-600 mb-1">聯絡人 <span class="text-red-500">*</span></label>
+                    <input type="text" id="promo-name" required placeholder="姓名"
+                      class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-colors text-slate-800 placeholder:text-slate-400">
+                  </div>
+                  <div>
+                    <label for="promo-phone" class="block text-xs font-semibold text-slate-600 mb-1">電話 <span class="text-red-500">*</span></label>
+                    <input type="tel" id="promo-phone" required placeholder="0912-345-678"
+                      class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-colors text-slate-800 placeholder:text-slate-400">
+                  </div>
+                </div>
+
+                <!-- Email -->
+                <div>
+                  <label for="promo-email" class="block text-xs font-semibold text-slate-600 mb-1">Email</label>
+                  <input type="email" id="promo-email" placeholder="email@company.com"
+                    class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-colors text-slate-800 placeholder:text-slate-400">
+                </div>
+
+                <!-- 需求描述 -->
+                <div>
+                  <label for="promo-needs" class="block text-xs font-semibold text-slate-600 mb-1">需求描述</label>
+                  <textarea id="promo-needs" rows="3" placeholder="請描述您目前的系統困擾或期望的功能..."
+                    class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-colors text-slate-800 placeholder:text-slate-400 resize-vertical"></textarea>
+                </div>
+
+                <!-- 錯誤訊息 -->
+                <div id="promo-form-error" class="hidden text-red-600 text-xs bg-red-50 px-3 py-2 rounded-lg border border-red-200"></div>
+
+                <!-- 送出按鈕 -->
+                <button type="submit" id="promo-submit-btn"
+                  class="cursor-pointer w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-lg transition-all duration-200 hover:shadow-lg hover:shadow-emerald-600/20 min-h-[44px] flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed text-sm">
+                  <i data-lucide="send" class="w-4 h-4"></i>
+                  <span id="promo-submit-text">送出諮詢</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+      <!-- 隱藏 iframe 用於表單提交 -->
+      <iframe name="promo-hidden-iframe" id="promo-hidden-iframe" style="display:none;" aria-hidden="true"></iframe>
+
+      </div>
+    </div>
+  </section>
+
   <!-- 頁尾 -->
-  <footer class="border-t border-slate-200 mt-8">
+  <footer class="border-t border-slate-200">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
       <p class="text-xs text-text-secondary text-center">
         新北市資源教育基地 導覽統計系統 &copy; <span id="footerYear"></span>
@@ -1063,6 +1205,127 @@
       document.getElementById('lastUpdate').textContent =
         `最後更新：${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
       document.getElementById('lastUpdate').classList.remove('hidden');
+    }
+
+    // ============================================================
+    // 推廣表單 - Google Sheets 提交
+    // ============================================================
+    // 部署 Google Apps Script 後，將 Web App URL 貼在這裡
+    const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxJnBjVuPweU9SsqwxNF8YuPAyQJNtkp3M0G_6udXijr9vUkUAR2adYQkr3mR54EalwSw/exec';
+
+    const promoForm = document.getElementById('promo-contact-form');
+    const promoFormContainer = document.getElementById('promo-form-container');
+    const promoSubmitBtn = document.getElementById('promo-submit-btn');
+    const promoSubmitText = document.getElementById('promo-submit-text');
+    const promoFormError = document.getElementById('promo-form-error');
+
+    promoForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      promoFormError.classList.add('hidden');
+
+      const formData = {
+        company: document.getElementById('promo-company').value.trim(),
+        name: document.getElementById('promo-name').value.trim(),
+        phone: document.getElementById('promo-phone').value.trim(),
+        email: document.getElementById('promo-email').value.trim(),
+        needs: document.getElementById('promo-needs').value.trim(),
+      };
+
+      // 基本驗證
+      if (!formData.company || !formData.name || !formData.phone) {
+        promoFormError.textContent = '請填寫所有必填欄位';
+        promoFormError.classList.remove('hidden');
+        return;
+      }
+
+      // 未設定 Google Script URL，使用 mailto 備援
+      if (!GOOGLE_SCRIPT_URL) {
+        const subject = encodeURIComponent('[廢棄物管理系統諮詢] ' + formData.company);
+        const body = encodeURIComponent(
+          '公司名稱：' + formData.company + '\n' +
+          '聯絡人：' + formData.name + '\n' +
+          '電話：' + formData.phone + '\n' +
+          'Email：' + (formData.email || '未提供') + '\n' +
+          '需求描述：\n' + (formData.needs || '未填寫')
+        );
+        window.location.href = 'mailto:?subject=' + subject + '&body=' + body;
+        showPromoSuccess();
+        return;
+      }
+
+      // 透過隱藏表單 + iframe 提交至 Google Apps Script（繞過 CORS 限制）
+      promoSubmitBtn.disabled = true;
+      promoSubmitText.textContent = '送出中...';
+
+      try {
+        // 建立隱藏表單，目標指向隱藏 iframe
+        const hiddenForm = document.createElement('form');
+        hiddenForm.method = 'POST';
+        hiddenForm.action = GOOGLE_SCRIPT_URL;
+        hiddenForm.target = 'promo-hidden-iframe';
+        hiddenForm.style.display = 'none';
+
+        // 加入表單欄位
+        const fields = { company: formData.company, name: formData.name, phone: formData.phone, email: formData.email, needs: formData.needs };
+        for (const [key, value] of Object.entries(fields)) {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = key;
+          input.value = value || '';
+          hiddenForm.appendChild(input);
+        }
+
+        // 監聽 iframe 回傳的 postMessage
+        let responded = false;
+        const messageHandler = function(event) {
+          if (responded) return;
+          if (event.data === 'form-success') {
+            responded = true;
+            window.removeEventListener('message', messageHandler);
+            clearTimeout(fallbackTimer);
+            showPromoSuccess();
+          } else if (event.data === 'form-error') {
+            responded = true;
+            window.removeEventListener('message', messageHandler);
+            clearTimeout(fallbackTimer);
+            promoFormError.textContent = '送出失敗，請直接撥打 0983-526-761 聯繫我們';
+            promoFormError.classList.remove('hidden');
+            promoSubmitBtn.disabled = false;
+            promoSubmitText.textContent = '送出諮詢';
+          }
+        };
+        window.addEventListener('message', messageHandler);
+
+        // 備援：若 8 秒內未收到回應，視為成功（表單已送出但可能被跨域阻擋 postMessage）
+        const fallbackTimer = setTimeout(function() {
+          if (!responded) {
+            responded = true;
+            window.removeEventListener('message', messageHandler);
+            showPromoSuccess();
+          }
+        }, 8000);
+
+        // 送出隱藏表單
+        document.body.appendChild(hiddenForm);
+        hiddenForm.submit();
+        document.body.removeChild(hiddenForm);
+
+      } catch (err) {
+        promoFormError.textContent = '送出失敗，請直接撥打 0983-526-761 聯繫我們';
+        promoFormError.classList.remove('hidden');
+        promoSubmitBtn.disabled = false;
+        promoSubmitText.textContent = '送出諮詢';
+      }
+    });
+
+    function showPromoSuccess() {
+      promoFormContainer.innerHTML = '<div class="bg-white rounded-2xl p-6 sm:p-8 shadow-2xl shadow-black/20 text-center">' +
+        '<div class="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">' +
+        '<svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>' +
+        '</div>' +
+        '<h3 class="text-lg font-bold text-slate-800 mb-2">感謝您的諮詢！</h3>' +
+        '<p class="text-slate-500 text-sm leading-relaxed">我們將在 24 小時內與您聯繫。<br>緊急需求歡迎直接撥打 <a href="tel:0983526761" class="text-emerald-600 font-bold hover:underline cursor-pointer">0983-526-761</a></p>' +
+        '</div>';
     }
 
     // 頁面載入
