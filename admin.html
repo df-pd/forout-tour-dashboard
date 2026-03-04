@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>大豐環保科技 - 內部管理系統</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#1E40AF',
+            secondary: '#3B82F6',
+            accent: '#F59E0B',
+            surface: '#F8FAFC',
+            'text-primary': '#1E3A8A',
+            'text-secondary': '#64748B',
+          },
+          fontFamily: {
+            sans: ['Fira Sans', 'Noto Sans TC', 'sans-serif'],
+            mono: ['Fira Code', 'monospace'],
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- 認證模組 -->
+  <script src="js/auth.js"></script>
+
+  <style>
+    body {
+      font-family: 'Fira Sans', 'Noto Sans TC', sans-serif;
+      background-color: #F8FAFC;
+      color: #1E3A8A;
+    }
+
+    /* KPI 卡片 hover */
+    .kpi-card {
+      transition: transform 150ms ease, box-shadow 150ms ease;
+    }
+    .kpi-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px -5px rgba(30, 64, 175, 0.15);
+    }
+
+    /* 表格行 hover */
+    .data-row:hover {
+      background-color: #EFF6FF;
+    }
+
+    /* 響應式滾動表格 */
+    .table-wrapper {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* 搜尋欄位焦點 */
+    .search-input:focus {
+      outline: none;
+      border-color: #3B82F6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    }
+
+    /* Tab 切換 */
+    .tab-btn {
+      transition: all 200ms ease;
+      position: relative;
+    }
+    .tab-btn.active {
+      color: #1E40AF;
+      font-weight: 600;
+    }
+    .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background-color: #1E40AF;
+      border-radius: 3px 3px 0 0;
+    }
+
+    /* 骨架屏動畫 */
+    .skeleton {
+      background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s ease-in-out infinite;
+      border-radius: 0.5rem;
+    }
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .skeleton, .kpi-card, .tab-btn {
+        animation: none;
+        transition: none;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <!-- 頂部導覽列 -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <!-- 左側：Logo + 標題 -->
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+            <i data-lucide="bar-chart-3" class="w-6 h-6 text-white"></i>
+          </div>
+          <div>
+            <h1 class="text-lg font-bold text-text-primary">大豐環保科技</h1>
+            <p class="text-xs text-text-secondary -mt-0.5">內部管理系統</p>
+          </div>
+        </div>
+        <!-- 右側：使用者資訊 + 回到儀表板 + 登出 -->
+        <div class="flex items-center gap-2">
+          <span id="user-name" class="text-xs text-text-secondary hidden sm:inline"></span>
+          <a href="index.html" class="cursor-pointer flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-primary bg-primary/5 hover:bg-primary/10 rounded-lg transition-colors">
+            <i data-lucide="layout-dashboard" class="w-3.5 h-3.5"></i>
+            <span class="hidden sm:inline">回到儀表板</span>
+          </a>
+          <button onclick="Auth.logout()" class="cursor-pointer p-2 rounded-lg hover:bg-slate-100 transition-colors" title="登出">
+            <i data-lucide="log-out" class="w-4 h-4 text-text-secondary"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- 主內容 -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- Tab 切換 -->
+    <div class="border-b border-slate-200">
+      <nav class="flex gap-8">
+        <button class="tab-btn active pb-3 text-sm cursor-pointer" data-tab="booking" onclick="switchTab('booking')">
+          <span class="flex items-center gap-2">
+            <i data-lucide="calendar-plus" class="w-4 h-4"></i>
+            預約參訪
+          </span>
+        </button>
+        <button class="tab-btn pb-3 text-sm text-text-secondary cursor-pointer" data-tab="list" onclick="switchTab('list')">
+          <span class="flex items-center gap-2">
+            <i data-lucide="list" class="w-4 h-4"></i>
+            預約清單
+          </span>
+        </button>
+        <button class="tab-btn pb-3 text-sm text-text-secondary cursor-pointer" data-tab="stats" onclick="switchTab('stats')">
+          <span class="flex items-center gap-2">
+            <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+            內部統計
+          </span>
+        </button>
+      </nav>
+    </div>
+
+    <!-- ===== Tab 1：預約參訪表單 ===== -->
+    <div id="tab-booking">
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 sm:p-6 max-w-2xl">
+        <h3 class="text-sm font-bold text-text-primary mb-4 flex items-center gap-2">
+          <i data-lucide="calendar-plus" class="w-4 h-4 text-primary"></i>
+          新增預約參訪
+        </h3>
+
+        <div id="booking-form-container">
+          <form id="booking-form" onsubmit="handleBookingSubmit(event)" class="space-y-4">
+            <!-- 參訪日期 + 時段 -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label for="booking-date" class="block text-xs font-semibold text-slate-600 mb-1">參訪日期 <span class="text-red-500">*</span></label>
+                <input type="date" id="booking-date" required
+                  class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors text-slate-800 placeholder:text-slate-400">
+              </div>
+              <div>
+                <label for="booking-period" class="block text-xs font-semibold text-slate-600 mb-1">時段 <span class="text-red-500">*</span></label>
+                <select id="booking-period" required
+                  class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors text-slate-800 cursor-pointer">
+                  <option value="">請選擇時段</option>
+                  <option value="上午 (09:00-12:00)">上午 (09:00-12:00)</option>
+                  <option value="下午 (13:00-17:00)">下午 (13:00-17:00)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- 公司名稱 -->
+            <div>
+              <label for="booking-company" class="block text-xs font-semibold text-slate-600 mb-1">公司名稱 <span class="text-red-500">*</span></label>
+              <input type="text" id="booking-company" required placeholder="請輸入公司名稱"
+                class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors text-slate-800 placeholder:text-slate-400">
+            </div>
+
+            <!-- 聯絡人 + 電話 -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label for="booking-contact" class="block text-xs font-semibold text-slate-600 mb-1">聯絡人 <span class="text-red-500">*</span></label>
+                <input type="text" id="booking-contact" required placeholder="請輸入聯絡人姓名"
+                  class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors text-slate-800 placeholder:text-slate-400">
+              </div>
+              <div>
+                <label for="booking-phone" class="block text-xs font-semibold text-slate-600 mb-1">電話 <span class="text-red-500">*</span></label>
+                <input type="tel" id="booking-phone" required placeholder="請輸入聯絡電話"
+                  class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors text-slate-800 placeholder:text-slate-400">
+              </div>
+            </div>
+
+            <!-- Email + 預估人數 -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label for="booking-email" class="block text-xs font-semibold text-slate-600 mb-1">Email</label>
+                <input type="email" id="booking-email" placeholder="選填"
+                  class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors text-slate-800 placeholder:text-slate-400">
+              </div>
+              <div>
+                <label for="booking-people" class="block text-xs font-semibold text-slate-600 mb-1">預估人數 <span class="text-red-500">*</span></label>
+                <input type="number" id="booking-people" required min="1" placeholder="請輸入預估人數"
+                  class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors text-slate-800 placeholder:text-slate-400">
+              </div>
+            </div>
+
+            <!-- 備註 -->
+            <div>
+              <label for="booking-note" class="block text-xs font-semibold text-slate-600 mb-1">備註</label>
+              <textarea id="booking-note" rows="3" placeholder="選填，如特殊需求或注意事項"
+                class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors text-slate-800 placeholder:text-slate-400 resize-vertical"></textarea>
+            </div>
+
+            <!-- 錯誤訊息 -->
+            <div id="booking-error" class="hidden text-red-600 text-xs bg-red-50 px-3 py-2 rounded-lg border border-red-200"></div>
+
+            <!-- 送出按鈕 -->
+            <button type="submit" id="booking-submit-btn"
+              class="cursor-pointer w-full bg-primary hover:bg-primary/90 text-white font-semibold py-3 rounded-lg transition-all duration-200 hover:shadow-lg min-h-[44px] flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed text-sm">
+              <i data-lucide="send" class="w-4 h-4"></i>
+              <span id="booking-submit-text">送出預約</span>
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Tab 2：預約清單 ===== -->
+    <div id="tab-list" class="hidden">
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm">
+        <!-- 搜尋列 -->
+        <div class="p-5 border-b border-slate-100">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <h3 class="text-sm font-semibold text-text-primary">預約清單</h3>
+            <div class="flex items-center gap-2">
+              <div class="relative">
+                <i data-lucide="search" class="w-4 h-4 text-text-secondary absolute left-3 top-1/2 -translate-y-1/2"></i>
+                <input
+                  type="text"
+                  id="booking-search"
+                  placeholder="搜尋公司、聯絡人..."
+                  class="search-input pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-lg w-full sm:w-64 transition-all"
+                  oninput="filterBookings()"
+                >
+              </div>
+              <button onclick="loadBookings()" class="cursor-pointer flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-primary bg-primary/5 hover:bg-primary/10 rounded-lg transition-colors min-h-[44px]">
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                <span class="hidden sm:inline">重新整理</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 表格 -->
+        <div class="table-wrapper">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="bg-slate-50 text-left">
+                <th class="px-5 py-3 font-semibold text-text-secondary text-xs uppercase tracking-wider">參訪日期</th>
+                <th class="px-5 py-3 font-semibold text-text-secondary text-xs uppercase tracking-wider">時段</th>
+                <th class="px-5 py-3 font-semibold text-text-secondary text-xs uppercase tracking-wider">公司名稱</th>
+                <th class="px-5 py-3 font-semibold text-text-secondary text-xs uppercase tracking-wider">聯絡人</th>
+                <th class="px-5 py-3 font-semibold text-text-secondary text-xs uppercase tracking-wider">電話</th>
+                <th class="px-5 py-3 font-semibold text-text-secondary text-xs uppercase tracking-wider text-right">人數</th>
+                <th class="px-5 py-3 font-semibold text-text-secondary text-xs uppercase tracking-wider">預約人</th>
+              </tr>
+            </thead>
+            <tbody id="booking-list-body">
+              <!-- 動態渲染 -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 載入中提示 -->
+        <div id="booking-list-loading" class="p-8 text-center">
+          <div class="skeleton h-8 w-full mb-2"></div>
+          <div class="skeleton h-8 w-full mb-2"></div>
+          <div class="skeleton h-8 w-full"></div>
+        </div>
+
+        <!-- 空狀態提示 -->
+        <div id="booking-list-empty" class="hidden text-center py-16">
+          <i data-lucide="inbox" class="w-12 h-12 text-slate-300 mx-auto mb-3"></i>
+          <p class="text-text-secondary text-sm">尚無預約資料</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Tab 3：內部統計 ===== -->
+    <div id="tab-stats" class="hidden">
+
+      <!-- KPI 卡片區 -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <!-- 本月預約 -->
+        <div class="kpi-card bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-medium text-text-secondary uppercase tracking-wider">本月預約</span>
+            <div class="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+              <i data-lucide="calendar" class="w-4 h-4 text-primary"></i>
+            </div>
+          </div>
+          <div id="kpi-month-bookings" class="text-3xl font-bold font-mono text-text-primary">
+            <div class="skeleton h-9 w-12"></div>
+          </div>
+          <p class="text-xs text-text-secondary mt-1">筆</p>
+        </div>
+
+        <!-- 總預約數 -->
+        <div class="kpi-card bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-medium text-text-secondary uppercase tracking-wider">總預約數</span>
+            <div class="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center">
+              <i data-lucide="clipboard-list" class="w-4 h-4 text-accent"></i>
+            </div>
+          </div>
+          <div id="kpi-total-bookings" class="text-3xl font-bold font-mono text-text-primary">
+            <div class="skeleton h-9 w-16"></div>
+          </div>
+          <p class="text-xs text-text-secondary mt-1">筆</p>
+        </div>
+
+        <!-- 總預估人數 -->
+        <div class="kpi-card bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-medium text-text-secondary uppercase tracking-wider">總預估人數</span>
+            <div class="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center">
+              <i data-lucide="users" class="w-4 h-4 text-green-600"></i>
+            </div>
+          </div>
+          <div id="kpi-total-people" class="text-3xl font-bold font-mono text-text-primary">
+            <div class="skeleton h-9 w-20"></div>
+          </div>
+          <p class="text-xs text-text-secondary mt-1">人次</p>
+        </div>
+      </div>
+
+      <!-- 圖表區 -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- 預約趨勢圖（折線圖） -->
+        <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+          <h3 class="text-sm font-semibold text-text-primary mb-4">預約趨勢</h3>
+          <div class="relative" style="height: 280px;">
+            <canvas id="chartBookingTrend"></canvas>
+          </div>
+        </div>
+
+        <!-- 時段分佈圖（圓餅圖） -->
+        <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+          <h3 class="text-sm font-semibold text-text-primary mb-4">時段分佈</h3>
+          <div class="relative" style="height: 280px;">
+            <canvas id="chartPeriodDist"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- 頁尾 -->
+  <footer class="border-t border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <p class="text-xs text-text-secondary text-center">
+        大豐環保科技股份有限公司 內部管理系統 &copy; <span id="footerYear"></span>
+      </p>
+    </div>
+  </footer>
+
+  <script>
+    // ============================================================
+    // 認證檢查 — 未登入跳轉首頁
+    // ============================================================
+    if (!Auth.guard()) throw new Error('未登入');
+
+    // ============================================================
+    // 全域狀態
+    // ============================================================
+    let bookingsData = [];         // 預約記錄原始資料
+    let filteredBookings = [];     // 篩選後的預約資料
+    let trendChart = null;         // 趨勢圖表實例
+    let periodChart = null;        // 時段分佈圖表實例
+
+    // ============================================================
+    // 工具函式
+    // ============================================================
+
+    /**
+     * HTML 跳脫，防止 XSS
+     */
+    function escapeHTML(str) {
+      if (!str) return '';
+      const div = document.createElement('div');
+      div.appendChild(document.createTextNode(str));
+      return div.innerHTML;
+    }
+
+    // ============================================================
+    // Tab 切換
+    // ============================================================
+
+    /**
+     * 切換 Tab 顯示
+     * @param {string} tabName - tab 名稱（booking / list / stats）
+     */
+    function switchTab(tabName) {
+      // 切換按鈕樣式
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        if (btn.dataset.tab === tabName) {
+          btn.classList.add('active');
+          btn.classList.remove('text-text-secondary');
+        } else {
+          btn.classList.remove('active');
+          btn.classList.add('text-text-secondary');
+        }
+      });
+
+      // 切換內容顯示
+      ['booking', 'list', 'stats'].forEach(name => {
+        const el = document.getElementById('tab-' + name);
+        if (el) {
+          el.classList.toggle('hidden', name !== tabName);
+        }
+      });
+
+      // 切換到統計 Tab 時渲染圖表
+      if (tabName === 'stats') {
+        renderBookingStats();
+      }
+
+      // 切換到清單 Tab 時重新整理 icons
+      lucide.createIcons();
+    }
+
+    // ============================================================
+    // 使用者資訊顯示
+    // ============================================================
+
+    /**
+     * 更新 Header 使用者名稱
+     */
+    function updateUserInfo() {
+      const user = Auth.getUser();
+      if (user) {
+        document.getElementById('user-name').textContent = user.name;
+      }
+    }
+
+    // ============================================================
+    // 預約表單送出
+    // ============================================================
+
+    /**
+     * 處理預約表單送出
+     * @param {Event} e - 表單送出事件
+     */
+    async function handleBookingSubmit(e) {
+      e.preventDefault();
+
+      const errorEl = document.getElementById('booking-error');
+      const submitBtn = document.getElementById('booking-submit-btn');
+      const submitText = document.getElementById('booking-submit-text');
+
+      // 隱藏先前的錯誤
+      errorEl.classList.add('hidden');
+
+      // 收集欄位
+      const data = {
+        date: document.getElementById('booking-date').value,
+        period: document.getElementById('booking-period').value,
+        company: document.getElementById('booking-company').value.trim(),
+        contact: document.getElementById('booking-contact').value.trim(),
+        phone: document.getElementById('booking-phone').value.trim(),
+        email: document.getElementById('booking-email').value.trim(),
+        people: parseInt(document.getElementById('booking-people').value) || 0,
+        note: document.getElementById('booking-note').value.trim(),
+      };
+
+      // 前端驗證必填欄位
+      if (!data.date || !data.period || !data.company || !data.contact || !data.phone || data.people < 1) {
+        errorEl.textContent = '請填寫所有必填欄位';
+        errorEl.classList.remove('hidden');
+        return;
+      }
+
+      // 禁用按鈕 + 顯示載入狀態
+      submitBtn.disabled = true;
+      submitText.textContent = '送出中...';
+
+      try {
+        const result = await Auth.apiCall('booking', data);
+
+        if (result.success) {
+          // 成功 → 替換表單內容為成功訊息
+          document.getElementById('booking-form-container').innerHTML = `
+            <div class="text-center py-8">
+              <div class="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i data-lucide="check-circle" class="w-8 h-8 text-green-500"></i>
+              </div>
+              <h3 class="text-lg font-bold text-text-primary mb-2">預約成功</h3>
+              <p class="text-sm text-text-secondary mb-1">
+                ${escapeHTML(data.company)} — ${escapeHTML(data.date)} ${escapeHTML(data.period)}
+              </p>
+              <p class="text-sm text-text-secondary mb-6">
+                聯絡人：${escapeHTML(data.contact)}，預估 ${data.people} 人
+              </p>
+              <button onclick="resetBookingForm()" class="cursor-pointer px-6 py-2.5 text-sm font-semibold text-primary bg-primary/5 hover:bg-primary/10 rounded-lg transition-colors min-h-[44px]">
+                <i data-lucide="plus" class="w-4 h-4 inline-block mr-1 align-text-bottom"></i>
+                繼續新增
+              </button>
+            </div>
+          `;
+          lucide.createIcons();
+
+          // 刷新預約清單
+          loadBookings();
+        } else {
+          // 失敗 → 顯示錯誤
+          errorEl.textContent = result.error || '送出失敗，請稍後再試';
+          errorEl.classList.remove('hidden');
+        }
+      } catch (err) {
+        errorEl.textContent = '連線失敗，請檢查網路';
+        errorEl.classList.remove('hidden');
+      } finally {
+        submitBtn.disabled = false;
+        submitText.textContent = '送出預約';
+      }
+    }
+
+    /**
+     * 重置預約表單（成功後繼續新增）
+     */
+    function resetBookingForm() {
+      document.getElementById('booking-form-container').innerHTML = buildBookingFormHTML();
+      // 重新設定日期最小值
+      document.getElementById('booking-date').min = new Date().toISOString().split('T')[0];
+      lucide.createIcons();
+    }
+
+    /**
+     * 產生預約表單 HTML
+     */
+    function buildBookingFormHTML() {
+      return `
+        <form id="booking-form" onsubmit="handleBookingSubmit(event)" class="space-y-4">
+          <!-- 參訪日期 + 時段 -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label for="booking-date" class="block text-xs font-semibold text-slate-600 mb-1">參訪日期 <span class="text-red-500">*</span></label>
+              <input type="date" id="booking-date" required
+                class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors text-slate-800 placeholder:text-slate-400">
+            </div>
+            <div>
+              <label for="booking-period" class="block text-xs font-semibold text-slate-600 mb-1">時段 <span class="text-red-500">*</span></label>
+              <select id="booking-period" required
+                class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors text-slate-800 cursor-pointer">
+                <option value="">請選擇時段</option>
+                <option value="上午 (09:00-12:00)">上午 (09:00-12:00)</option>
+                <option value="下午 (13:00-17:00)">下午 (13:00-17:00)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- 公司名稱 -->
+          <div>
+            <label for="booking-company" class="block text-xs font-semibold text-slate-600 mb-1">公司名稱 <span class="text-red-500">*</span></label>
+            <input type="text" id="booking-company" required placeholder="請輸入公司名稱"
+              class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors text-slate-800 placeholder:text-slate-400">
+          </div>
+
+          <!-- 聯絡人 + 電話 -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label for="booking-contact" class="block text-xs font-semibold text-slate-600 mb-1">聯絡人 <span class="text-red-500">*</span></label>
+              <input type="text" id="booking-contact" required placeholder="請輸入聯絡人姓名"
+                class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors text-slate-800 placeholder:text-slate-400">
+            </div>
+            <div>
+              <label for="booking-phone" class="block text-xs font-semibold text-slate-600 mb-1">電話 <span class="text-red-500">*</span></label>
+              <input type="tel" id="booking-phone" required placeholder="請輸入聯絡電話"
+                class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors text-slate-800 placeholder:text-slate-400">
+            </div>
+          </div>
+
+          <!-- Email + 預估人數 -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label for="booking-email" class="block text-xs font-semibold text-slate-600 mb-1">Email</label>
+              <input type="email" id="booking-email" placeholder="選填"
+                class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors text-slate-800 placeholder:text-slate-400">
+            </div>
+            <div>
+              <label for="booking-people" class="block text-xs font-semibold text-slate-600 mb-1">預估人數 <span class="text-red-500">*</span></label>
+              <input type="number" id="booking-people" required min="1" placeholder="請輸入預估人數"
+                class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors text-slate-800 placeholder:text-slate-400">
+            </div>
+          </div>
+
+          <!-- 備註 -->
+          <div>
+            <label for="booking-note" class="block text-xs font-semibold text-slate-600 mb-1">備註</label>
+            <textarea id="booking-note" rows="3" placeholder="選填，如特殊需求或注意事項"
+              class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors text-slate-800 placeholder:text-slate-400 resize-vertical"></textarea>
+          </div>
+
+          <!-- 錯誤訊息 -->
+          <div id="booking-error" class="hidden text-red-600 text-xs bg-red-50 px-3 py-2 rounded-lg border border-red-200"></div>
+
+          <!-- 送出按鈕 -->
+          <button type="submit" id="booking-submit-btn"
+            class="cursor-pointer w-full bg-primary hover:bg-primary/90 text-white font-semibold py-3 rounded-lg transition-all duration-200 hover:shadow-lg min-h-[44px] flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed text-sm">
+            <i data-lucide="send" class="w-4 h-4"></i>
+            <span id="booking-submit-text">送出預約</span>
+          </button>
+        </form>
+      `;
+    }
+
+    // ============================================================
+    // 載入預約清單
+    // ============================================================
+
+    /**
+     * 從後端載入預約清單
+     */
+    async function loadBookings() {
+      const loadingEl = document.getElementById('booking-list-loading');
+      const emptyEl = document.getElementById('booking-list-empty');
+      const tbody = document.getElementById('booking-list-body');
+
+      // 顯示載入中
+      loadingEl.classList.remove('hidden');
+      emptyEl.classList.add('hidden');
+      tbody.innerHTML = '';
+
+      try {
+        const result = await Auth.apiCall('listBookings');
+
+        if (result.success && Array.isArray(result.data)) {
+          bookingsData = result.data;
+          filteredBookings = [...bookingsData];
+          renderBookingList();
+        } else {
+          bookingsData = [];
+          filteredBookings = [];
+          loadingEl.classList.add('hidden');
+          emptyEl.classList.remove('hidden');
+        }
+      } catch (err) {
+        console.error('載入預約清單失敗:', err);
+        bookingsData = [];
+        filteredBookings = [];
+        loadingEl.classList.add('hidden');
+        emptyEl.classList.remove('hidden');
+      }
+    }
+
+    /**
+     * 渲染預約清單表格
+     */
+    function renderBookingList() {
+      const loadingEl = document.getElementById('booking-list-loading');
+      const emptyEl = document.getElementById('booking-list-empty');
+      const tbody = document.getElementById('booking-list-body');
+
+      loadingEl.classList.add('hidden');
+
+      if (filteredBookings.length === 0) {
+        tbody.innerHTML = '';
+        emptyEl.classList.remove('hidden');
+        return;
+      }
+
+      emptyEl.classList.add('hidden');
+      tbody.innerHTML = filteredBookings.map(b => `
+        <tr class="data-row border-b border-slate-100 transition-colors">
+          <td class="px-5 py-3 text-sm text-text-primary whitespace-nowrap">${escapeHTML(b.date)}</td>
+          <td class="px-5 py-3 text-sm text-text-secondary whitespace-nowrap">${escapeHTML(b.period)}</td>
+          <td class="px-5 py-3 text-sm text-text-primary font-medium">${escapeHTML(b.company)}</td>
+          <td class="px-5 py-3 text-sm text-text-secondary">${escapeHTML(b.contact)}</td>
+          <td class="px-5 py-3 text-sm text-text-secondary whitespace-nowrap">${escapeHTML(b.phone)}</td>
+          <td class="px-5 py-3 text-sm text-text-primary text-right font-mono">${b.people || 0}</td>
+          <td class="px-5 py-3 text-sm text-text-secondary">${escapeHTML(b.bookedBy || '')}</td>
+        </tr>
+      `).join('');
+    }
+
+    /**
+     * 即時篩選預約清單
+     */
+    function filterBookings() {
+      const keyword = document.getElementById('booking-search').value.trim().toLowerCase();
+
+      if (!keyword) {
+        filteredBookings = [...bookingsData];
+      } else {
+        filteredBookings = bookingsData.filter(b => {
+          const searchStr = [b.date, b.period, b.company, b.contact, b.phone, b.bookedBy || ''].join(' ').toLowerCase();
+          return searchStr.includes(keyword);
+        });
+      }
+
+      renderBookingList();
+    }
+
+    // ============================================================
+    // 內部統計
+    // ============================================================
+
+    /**
+     * 渲染預約統計 KPI 與圖表
+     */
+    function renderBookingStats() {
+      // 計算 KPI
+      const totalBookings = bookingsData.length;
+      const totalPeople = bookingsData.reduce((sum, b) => sum + (b.people || 0), 0);
+
+      // 計算本月預約數
+      const now = new Date();
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
+      const monthBookings = bookingsData.filter(b => {
+        if (!b.date) return false;
+        const d = new Date(b.date);
+        return !isNaN(d.getTime()) && d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+      }).length;
+
+      // 更新 KPI 卡片
+      document.getElementById('kpi-month-bookings').textContent = monthBookings.toLocaleString();
+      document.getElementById('kpi-total-bookings').textContent = totalBookings.toLocaleString();
+      document.getElementById('kpi-total-people').textContent = totalPeople.toLocaleString();
+
+      // 渲染圖表
+      renderTrendChart();
+      renderPeriodChart();
+    }
+
+    /**
+     * 渲染預約趨勢折線圖
+     */
+    function renderTrendChart() {
+      const ctx = document.getElementById('chartBookingTrend');
+      if (!ctx) return;
+
+      // 銷毀既有圖表
+      if (trendChart) {
+        trendChart.destroy();
+        trendChart = null;
+      }
+
+      // 依月份統計預約數
+      const monthMap = {};
+      bookingsData.forEach(b => {
+        if (!b.date) return;
+        const d = new Date(b.date);
+        if (isNaN(d.getTime())) return;
+        const key = d.getFullYear() + '/' + String(d.getMonth() + 1).padStart(2, '0');
+        monthMap[key] = (monthMap[key] || 0) + 1;
+      });
+
+      // 排序月份
+      const sortedMonths = Object.keys(monthMap).sort();
+      const labels = sortedMonths;
+      const data = sortedMonths.map(m => monthMap[m]);
+
+      trendChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: '預約數',
+            data,
+            borderColor: '#1E40AF',
+            backgroundColor: 'rgba(30, 64, 175, 0.1)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.3,
+            pointRadius: 4,
+            pointBackgroundColor: '#1E40AF',
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { font: { size: 11, family: "'Noto Sans TC', sans-serif" } },
+            },
+            y: {
+              beginAtZero: true,
+              ticks: {
+                stepSize: 1,
+                font: { size: 11, family: "'Fira Code', monospace" },
+              },
+              grid: { color: 'rgba(0,0,0,0.05)' },
+            }
+          }
+        }
+      });
+    }
+
+    /**
+     * 渲染時段分佈圓餅圖
+     */
+    function renderPeriodChart() {
+      const ctx = document.getElementById('chartPeriodDist');
+      if (!ctx) return;
+
+      // 銷毀既有圖表
+      if (periodChart) {
+        periodChart.destroy();
+        periodChart = null;
+      }
+
+      // 依時段統計
+      const periodMap = {};
+      bookingsData.forEach(b => {
+        const period = b.period || '未指定';
+        periodMap[period] = (periodMap[period] || 0) + 1;
+      });
+
+      const labels = Object.keys(periodMap);
+      const data = Object.values(periodMap);
+      const colors = ['#1E40AF', '#F59E0B', '#10B981', '#8B5CF6', '#EF4444'];
+
+      periodChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+          labels,
+          datasets: [{
+            data,
+            backgroundColor: colors.slice(0, labels.length),
+            borderWidth: 2,
+            borderColor: '#ffffff',
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                padding: 16,
+                font: { size: 12, family: "'Noto Sans TC', sans-serif" },
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // ============================================================
+    // 初始化
+    // ============================================================
+    document.addEventListener('DOMContentLoaded', () => {
+      // 設定年份
+      document.getElementById('footerYear').textContent = new Date().getFullYear();
+
+      // 初始化 Lucide Icons
+      lucide.createIcons();
+
+      // 顯示使用者資訊
+      updateUserInfo();
+
+      // 載入預約清單
+      loadBookings();
+
+      // 設定日期輸入最小值為今天
+      const dateInput = document.getElementById('booking-date');
+      if (dateInput) {
+        dateInput.min = new Date().toISOString().split('T')[0];
+      }
+    });
+  </script>
+
+</body>
+</html>
