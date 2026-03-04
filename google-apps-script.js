@@ -7,6 +7,7 @@
  *   1. 諮詢表單接收（原有）
  *   2. 使用者登入驗證
  *   3. 預約參訪管理（新增/列表）
+ *   4. 一次式預約連結（產生/驗證/公開預約）
  *
  * 【需要的工作表】
  *
@@ -14,12 +15,24 @@
  *      A: 公司名稱 | B: 聯絡人 | C: 電話 | D: Email | E: 需求描述 | F: 時間戳記
  *
  *   2.「帳號」— 內部登入帳號（請手動建立）
- *      A: 帳號 | B: 密碼 | C: 姓名 | D: 角色
- *      例：admin | changeme123 | 管理員 | admin
+ *      A: 帳號 | B: 密碼 | C: 姓名 | D: 角色 | E: 可見功能
+ *      例：admin | changeme123 | 管理員 | admin | （空白＝全部）
+ *      例：user1 | pass123     | 王小明 | user  | booking,list
+ *
+ *      可見功能欄位值（以逗號分隔）：
+ *        booking — 預約參訪
+ *        list    — 預約清單
+ *        stats   — 內部統計
+ *        qa      — 內部 QA
+ *      若角色為 admin 或可見功能為空，則顯示全部功能
  *
  *   3.「預約參訪」— 預約記錄（自動建立）
  *      A: 參訪日期 | B: 時段 | C: 公司名稱 | D: 聯絡人 | E: 電話
  *      F: Email | G: 人數 | H: 備註 | I: 預約人 | J: 建立時間
+ *
+ *   4.「預約連結」— 一次式預約連結（自動建立）
+ *      A: 連結代碼 | B: 狀態(active/used/expired) | C: 建立人
+ *      D: 建立時間 | E: 到期日 | F: 使用時間
  *
  * 【部署步驟】
  *   1. 在試算表「擴充功能」→「Apps Script」
@@ -147,6 +160,14 @@ function doPost(e) {
         return handleBooking(data);
       case 'listBookings':
         return handleListBookings(data);
+      case 'generateLink':
+        return handleGenerateLink(data);
+      case 'validateLink':
+        return handleValidateLink(data);
+      case 'publicBooking':
+        return handlePublicBooking(data);
+      case 'listLinks':
+        return handleListLinks(data);
       case 'contact':
         return handleContactForm(data, false);
       default:
@@ -194,14 +215,27 @@ function handleLogin(data) {
     if (rowUser === username && rowPass === password) {
       // 產生當日有效的 token
       var token = simpleHash(username + ':' + password + ':' + today);
+      var role = String(rows[i][3]).trim() || 'user';
+      var permStr = String(rows[i][4] || '').trim();
+
+      // 解析可見功能：admin 角色或空白 → 全部
+      var allTabs = ['booking', 'list', 'stats', 'qa'];
+      var permissions;
+      if (role === 'admin' || !permStr) {
+        permissions = allTabs;
+      } else {
+        permissions = permStr.split(',').map(function(s) { return s.trim(); }).filter(function(s) { return allTabs.indexOf(s) !== -1; });
+        if (permissions.length === 0) permissions = allTabs;
+      }
 
       return jsonResponse({
         success: true,
         token: token,
         user: {
           name: String(rows[i][2]).trim() || username,
-          role: String(rows[i][3]).trim() || 'user'
-        }
+          role: role
+        },
+        permissions: permissions
       });
     }
   }
@@ -310,4 +344,216 @@ function handleContactForm(data, isIframe) {
   }
 
   return jsonResponse({ success: true, message: '諮詢已送出' });
+}
+
+// ============================================================
+// 功能：產生一次式預約連結（需登入）
+// ============================================================
+
+function handleGenerateLink(data) {
+  var user = verifyToken(data.token);
+  if (!user) {
+    return jsonResponse({ success: false, error: '請先登入' });
+  }
+
+  var sheet = getOrCreateSheet('預約連結', [
+    '連結代碼', '狀態', '建立人', '建立時間', '到期日', '使用時間'
+  ]);
+
+  // 產生 8 碼隨機代碼
+  var code = generateRandomCode(8);
+
+  // 到期日：7 天後
+  var now = new Date();
+  var expiry = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  var expiryStr = Utilities.formatDate(expiry, 'Asia/Taipei', 'yyyy-MM-dd');
+
+  sheet.appendRow([
+    code,
+    'active',
+    user.name,
+    twTimestamp(),
+    expiryStr,
+    ''
+  ]);
+
+  return jsonResponse({
+    success: true,
+    code: code,
+    expiry: expiryStr,
+    message: '預約連結已產生'
+  });
+}
+
+/**
+ * 產生隨機英數代碼
+ */
+function generateRandomCode(length) {
+  var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // 去除易混淆字元
+  var code = '';
+  for (var i = 0; i < length; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
+
+// ============================================================
+// 功能：驗證預約連結（公開，無需登入）
+// ============================================================
+
+function handleValidateLink(data) {
+  var code = String(data.code || '').trim().toUpperCase();
+  if (!code) {
+    return jsonResponse({ success: false, error: '請提供預約代碼' });
+  }
+
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName('預約連結');
+  if (!sheet) {
+    return jsonResponse({ success: false, error: '預約代碼無效' });
+  }
+
+  var rows = sheet.getDataRange().getValues();
+  var today = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd');
+
+  for (var i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]).trim() === code) {
+      var status = String(rows[i][1]).trim();
+      var expiry = String(rows[i][4]).trim();
+
+      if (status === 'used') {
+        return jsonResponse({ success: false, error: '此預約連結已使用過' });
+      }
+      if (status === 'expired' || today > expiry) {
+        // 自動標記過期
+        if (status !== 'expired') {
+          sheet.getRange(i + 1, 2).setValue('expired');
+        }
+        return jsonResponse({ success: false, error: '此預約連結已過期' });
+      }
+      if (status === 'active') {
+        return jsonResponse({
+          success: true,
+          valid: true,
+          expiry: expiry,
+          createdBy: String(rows[i][2]).trim()
+        });
+      }
+    }
+  }
+
+  return jsonResponse({ success: false, error: '預約代碼無效' });
+}
+
+// ============================================================
+// 功能：公開預約提交（透過一次式連結，無需登入）
+// ============================================================
+
+function handlePublicBooking(data) {
+  var code = String(data.code || '').trim().toUpperCase();
+  if (!code) {
+    return jsonResponse({ success: false, error: '缺少預約代碼' });
+  }
+
+  // 驗證必填欄位
+  if (!data.visitDate || !data.period || !data.company || !data.contact || !data.phone || !data.people) {
+    return jsonResponse({ success: false, error: '請填寫所有必填欄位' });
+  }
+
+  // 驗證連結有效性
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var linkSheet = ss.getSheetByName('預約連結');
+  if (!linkSheet) {
+    return jsonResponse({ success: false, error: '預約代碼無效' });
+  }
+
+  var rows = linkSheet.getDataRange().getValues();
+  var today = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd');
+  var linkRowIndex = -1;
+
+  for (var i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]).trim() === code) {
+      var status = String(rows[i][1]).trim();
+      var expiry = String(rows[i][4]).trim();
+
+      if (status !== 'active' || today > expiry) {
+        return jsonResponse({ success: false, error: '此預約連結已失效' });
+      }
+      linkRowIndex = i + 1; // Sheet 行號（1-based）
+      break;
+    }
+  }
+
+  if (linkRowIndex === -1) {
+    return jsonResponse({ success: false, error: '預約代碼無效' });
+  }
+
+  // 寫入預約資料
+  var bookingSheet = getOrCreateSheet('預約參訪', [
+    '參訪日期', '時段', '公司名稱', '聯絡人', '電話',
+    'Email', '人數', '備註', '預約人', '建立時間'
+  ]);
+
+  bookingSheet.appendRow([
+    data.visitDate,
+    data.period,
+    data.company,
+    data.contact,
+    data.phone,
+    data.email || '',
+    parseInt(data.people) || 0,
+    data.note || '',
+    '客戶自行預約 (' + code + ')',
+    twTimestamp()
+  ]);
+
+  // 將連結標記為已使用
+  linkSheet.getRange(linkRowIndex, 2).setValue('used');
+  linkSheet.getRange(linkRowIndex, 6).setValue(twTimestamp());
+
+  return jsonResponse({ success: true, message: '預約成功！我們將盡快與您聯繫確認。' });
+}
+
+// ============================================================
+// 功能：取得預約連結清單（需登入）
+// ============================================================
+
+function handleListLinks(data) {
+  var user = verifyToken(data.token);
+  if (!user) {
+    return jsonResponse({ success: false, error: '請先登入' });
+  }
+
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName('預約連結');
+
+  if (!sheet) {
+    return jsonResponse({ success: true, links: [] });
+  }
+
+  var rows = sheet.getDataRange().getValues();
+  var links = [];
+  var today = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd');
+
+  for (var i = 1; i < rows.length; i++) {
+    var status = String(rows[i][1]).trim();
+    var expiry = String(rows[i][4]).trim();
+
+    // 自動更新過期狀態
+    if (status === 'active' && today > expiry) {
+      status = 'expired';
+      sheet.getRange(i + 1, 2).setValue('expired');
+    }
+
+    links.push({
+      code: String(rows[i][0]).trim(),
+      status: status,
+      createdBy: String(rows[i][2]).trim(),
+      createdAt: String(rows[i][3]).trim(),
+      expiry: expiry,
+      usedAt: String(rows[i][5]).trim()
+    });
+  }
+
+  return jsonResponse({ success: true, links: links });
 }

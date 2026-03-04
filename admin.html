@@ -290,6 +290,54 @@
           </form>
         </div>
       </div>
+
+      <!-- 產生預約連結區塊 -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 sm:p-6 max-w-2xl mt-6">
+        <h3 class="text-sm font-bold text-text-primary mb-4 flex items-center gap-2">
+          <i data-lucide="link" class="w-4 h-4 text-primary"></i>
+          產生客戶預約連結
+        </h3>
+        <p class="text-xs text-text-secondary mb-4">產生一次式連結給客戶，客戶可直接填寫預約表單，連結使用後即失效（有效期 7 天）。</p>
+
+        <div class="flex items-center gap-3 mb-5">
+          <button onclick="handleGenerateLink()" id="generate-link-btn"
+            class="cursor-pointer bg-accent hover:bg-accent/90 text-white font-semibold px-5 py-2.5 rounded-lg transition-all duration-200 hover:shadow-lg min-h-[44px] flex items-center gap-2 text-sm disabled:opacity-60 disabled:cursor-not-allowed">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i>
+            <span id="generate-link-text">產生新連結</span>
+          </button>
+        </div>
+
+        <!-- 新產生的連結顯示 -->
+        <div id="generated-link-result" class="hidden mb-5">
+          <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <p class="text-xs font-semibold text-primary mb-2">連結已產生！請複製給客戶：</p>
+            <div class="flex items-center gap-2">
+              <input type="text" id="generated-link-url" readonly
+                class="flex-1 px-3 py-2 text-sm rounded-lg border border-blue-200 bg-white text-slate-800 font-mono select-all">
+              <button onclick="copyGeneratedLink()" id="copy-link-btn"
+                class="cursor-pointer flex items-center gap-1.5 px-4 py-2 text-sm font-semibold bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors min-h-[44px]">
+                <i data-lucide="copy" class="w-4 h-4"></i>
+                <span id="copy-link-text">複製</span>
+              </button>
+            </div>
+            <p class="text-xs text-text-secondary mt-2">到期日：<span id="generated-link-expiry"></span></p>
+          </div>
+        </div>
+
+        <!-- 連結清單 -->
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <h4 class="text-xs font-semibold text-text-secondary uppercase tracking-wider">已產生的連結</h4>
+            <button onclick="loadLinks()" class="cursor-pointer flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors">
+              <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+              重新整理
+            </button>
+          </div>
+          <div id="links-list" class="space-y-2">
+            <div class="text-xs text-text-secondary text-center py-4">點擊「重新整理」載入連結清單</div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- ===== Tab 2：預約清單 ===== -->
@@ -757,6 +805,9 @@
     // ============================================================
 
     function switchTab(tabName) {
+      // 檢查是否有此 Tab 的權限
+      if (!Auth.hasPermission(tabName)) return;
+
       document.querySelectorAll('.tab-btn').forEach(btn => {
         if (btn.dataset.tab === tabName) {
           btn.classList.add('active');
@@ -767,7 +818,8 @@
         }
       });
 
-      ['booking', 'list', 'stats', 'qa'].forEach(name => {
+      const allTabs = ['booking', 'list', 'stats', 'qa'];
+      allTabs.forEach(name => {
         const el = document.getElementById('tab-' + name);
         if (el) el.classList.toggle('hidden', name !== tabName);
       });
@@ -794,6 +846,46 @@
       lucide.createIcons();
     }
 
+    /**
+     * 根據使用者權限動態顯示/隱藏 Tab 按鈕與面板
+     * admin 角色或 permissions 未設定時顯示全部
+     */
+    function applyPermissions() {
+      const permissions = Auth.getPermissions();
+      const allTabs = ['booking', 'list', 'stats', 'qa'];
+
+      allTabs.forEach(tabName => {
+        const btn = document.querySelector(`.tab-btn[data-tab="${tabName}"]`);
+        const panel = document.getElementById('tab-' + tabName);
+
+        if (permissions.includes(tabName)) {
+          if (btn) btn.style.display = '';
+        } else {
+          if (btn) btn.style.display = 'none';
+          if (panel) panel.classList.add('hidden');
+        }
+      });
+
+      // 找到第一個可見的 Tab 並切換過去
+      const firstVisible = allTabs.find(t => permissions.includes(t));
+      if (firstVisible) {
+        switchTab(firstVisible);
+      } else {
+        // 完全無權限時顯示提示訊息
+        const main = document.querySelector('main');
+        if (main) {
+          main.innerHTML = `
+            <div class="text-center py-20">
+              <i data-lucide="lock" class="w-16 h-16 mx-auto text-slate-300 mb-4"></i>
+              <p class="text-lg font-semibold text-slate-500">您的帳號尚未開放任何功能</p>
+              <p class="text-sm text-slate-400 mt-2">請聯繫管理員設定可見功能權限</p>
+            </div>
+          `;
+          lucide.createIcons();
+        }
+      }
+    }
+
     // ============================================================
     // 使用者資訊
     // ============================================================
@@ -801,7 +893,9 @@
     function updateUserInfo() {
       const user = Auth.getUser();
       if (user) {
-        document.getElementById('user-name').textContent = user.name;
+        const roleLabel = user.role === 'admin' ? '管理員' : user.role || '';
+        const suffix = roleLabel ? ` (${roleLabel})` : '';
+        document.getElementById('user-name').textContent = user.name + suffix;
       }
     }
 
@@ -1521,13 +1615,130 @@
     }
 
     // ============================================================
+    // 一次式預約連結
+    // ============================================================
+
+    async function handleGenerateLink() {
+      const btn = document.getElementById('generate-link-btn');
+      const textEl = document.getElementById('generate-link-text');
+      btn.disabled = true;
+      textEl.textContent = '產生中...';
+
+      try {
+        const result = await Auth.apiCall('generateLink');
+        if (result.success) {
+          const baseUrl = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/');
+          const linkUrl = baseUrl + 'book.html?code=' + result.code;
+
+          document.getElementById('generated-link-url').value = linkUrl;
+          document.getElementById('generated-link-expiry').textContent = result.expiry;
+          document.getElementById('generated-link-result').classList.remove('hidden');
+
+          // 自動重新載入連結清單
+          loadLinks();
+        } else {
+          alert(result.error || '產生連結失敗');
+        }
+      } catch (err) {
+        alert('連線失敗，請檢查網路');
+      } finally {
+        btn.disabled = false;
+        textEl.textContent = '產生新連結';
+      }
+    }
+
+    function copyGeneratedLink() {
+      const input = document.getElementById('generated-link-url');
+      input.select();
+      navigator.clipboard.writeText(input.value).then(() => {
+        const textEl = document.getElementById('copy-link-text');
+        textEl.textContent = '已複製！';
+        setTimeout(() => { textEl.textContent = '複製'; }, 2000);
+      }).catch(() => {
+        // fallback
+        document.execCommand('copy');
+      });
+    }
+
+    async function loadLinks() {
+      const container = document.getElementById('links-list');
+      container.innerHTML = '<div class="text-xs text-text-secondary text-center py-4">載入中...</div>';
+
+      try {
+        const result = await Auth.apiCall('listLinks');
+        if (!result.success) {
+          container.innerHTML = '<div class="text-xs text-red-500 text-center py-4">' + escapeHTML(result.error) + '</div>';
+          return;
+        }
+
+        if (!result.links || result.links.length === 0) {
+          container.innerHTML = '<div class="text-xs text-text-secondary text-center py-4">尚無連結記錄</div>';
+          return;
+        }
+
+        // 依建立時間倒序
+        const links = result.links.reverse();
+        container.innerHTML = links.map(link => {
+          const statusMap = {
+            active: { label: '有效', color: 'bg-green-100 text-green-700' },
+            used: { label: '已使用', color: 'bg-slate-100 text-slate-500' },
+            expired: { label: '已過期', color: 'bg-red-100 text-red-600' },
+          };
+          const st = statusMap[link.status] || { label: link.status, color: 'bg-slate-100 text-slate-500' };
+          const baseUrl = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/');
+          const linkUrl = baseUrl + 'book.html?code=' + link.code;
+
+          return `
+            <div class="flex items-center justify-between px-4 py-3 bg-slate-50 rounded-lg border border-slate-100">
+              <div class="flex items-center gap-3 min-w-0">
+                <span class="font-mono text-xs font-bold text-primary">${escapeHTML(link.code)}</span>
+                <span class="text-xs px-2 py-0.5 rounded-full ${st.color} font-medium">${st.label}</span>
+                <span class="text-xs text-text-secondary hidden sm:inline">${escapeHTML(link.createdBy)} · ${escapeHTML(link.expiry)}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                ${link.status === 'active' ? `
+                  <button onclick="copyLinkUrl('${escapeHTML(linkUrl)}')" class="cursor-pointer text-xs text-primary hover:text-primary/80 transition-colors flex items-center gap-1 min-h-[44px] px-2">
+                    <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                    <span class="hidden sm:inline">複製</span>
+                  </button>
+                ` : ''}
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        lucide.createIcons();
+      } catch (err) {
+        container.innerHTML = '<div class="text-xs text-red-500 text-center py-4">載入失敗</div>';
+      }
+    }
+
+    function copyLinkUrl(url) {
+      navigator.clipboard.writeText(url).then(() => {
+        // 簡短提示
+        const toast = document.createElement('div');
+        toast.className = 'fixed bottom-4 right-4 bg-primary text-white text-sm px-4 py-2 rounded-lg shadow-lg z-50';
+        toast.textContent = '連結已複製！';
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2000);
+      });
+    }
+
+    // ============================================================
     // 初始化
     // ============================================================
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('footerYear').textContent = new Date().getFullYear();
       lucide.createIcons();
       updateUserInfo();
-      loadBookings();
+
+      // 套用權限控制（顯示/隱藏 Tab）
+      applyPermissions();
+
+      // 有預約清單權限時才載入資料
+      if (Auth.hasPermission('list')) {
+        loadBookings();
+      }
 
       const dateInput = document.getElementById('booking-date');
       if (dateInput) {

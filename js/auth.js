@@ -26,6 +26,10 @@ const Auth = {
         localStorage.setItem('auth_token', result.token);
         localStorage.setItem('auth_user', JSON.stringify(result.user));
         localStorage.setItem('auth_expiry', today.getTime().toString());
+        // 儲存可見功能權限（由 GAS 根據帳號工作表 E 欄回傳）
+        if (result.permissions) {
+          localStorage.setItem('auth_permissions', JSON.stringify(result.permissions));
+        }
       }
 
       return result;
@@ -41,6 +45,7 @@ const Auth = {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('auth_user');
     localStorage.removeItem('auth_expiry');
+    localStorage.removeItem('auth_permissions');
     window.location.href = 'index.html';
   },
 
@@ -63,6 +68,27 @@ const Auth = {
     } catch {
       return null;
     }
+  },
+
+  /**
+   * 取得可見功能權限
+   * 回傳陣列如 ['booking', 'list', 'stats', 'qa']
+   * 若無設定或 admin 角色，回傳所有功能
+   */
+  getPermissions() {
+    try {
+      const perms = JSON.parse(localStorage.getItem('auth_permissions'));
+      if (Array.isArray(perms) && perms.length > 0) return perms;
+    } catch { /* 忽略 */ }
+    // 預設全部可見
+    return ['booking', 'list', 'stats', 'qa'];
+  },
+
+  /**
+   * 檢查是否有特定功能的權限
+   */
+  hasPermission(tabName) {
+    return this.getPermissions().includes(tabName);
   },
 
   /**
