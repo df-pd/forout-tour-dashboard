@@ -112,6 +112,44 @@ const Auth = {
   /**
    * 送出需認證的 API 請求到 Google Apps Script
    */
+  /**
+   * 修改帳號密碼
+   */
+  async updateCredentials(currentPassword, newUsername, newPassword) {
+    const result = await this.apiCall('updateCredentials', { currentPassword, newUsername, newPassword });
+    return result;
+  },
+
+  /**
+   * 記住帳密：儲存
+   */
+  saveCredentials(username, password) {
+    localStorage.setItem('saved_username', username);
+    localStorage.setItem('saved_password', btoa(unescape(encodeURIComponent(password))));
+  },
+
+  /**
+   * 記住帳密：清除
+   */
+  clearSavedCredentials() {
+    localStorage.removeItem('saved_username');
+    localStorage.removeItem('saved_password');
+  },
+
+  /**
+   * 記住帳密：讀取
+   */
+  getSavedCredentials() {
+    const username = localStorage.getItem('saved_username');
+    const encoded = localStorage.getItem('saved_password');
+    if (!username || !encoded) return null;
+    try {
+      return { username, password: decodeURIComponent(escape(atob(encoded))) };
+    } catch {
+      return null;
+    }
+  },
+
   async apiCall(action, data = {}) {
     try {
       const resp = await fetch(this.GAS_URL, {

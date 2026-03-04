@@ -168,6 +168,8 @@ function doPost(e) {
         return handlePublicBooking(data);
       case 'listLinks':
         return handleListLinks(data);
+      case 'updateCredentials':
+        return handleUpdateCredentials(data);
       case 'contact':
         return handleContactForm(data, false);
       default:
@@ -241,6 +243,70 @@ function handleLogin(data) {
   }
 
   return jsonResponse({ success: false, error: '帳號或密碼錯誤' });
+}
+
+// ============================================================
+// 功能：修改帳號密碼
+// ============================================================
+
+function handleUpdateCredentials(data) {
+  // 驗證登入
+  var user = verifyToken(data.token);
+  if (!user) {
+    return jsonResponse({ success: false, error: '請重新登入' });
+  }
+
+  var currentPassword = String(data.currentPassword || '').trim();
+  var newUsername = String(data.newUsername || '').trim();
+  var newPassword = String(data.newPassword || '').trim();
+
+  if (!currentPassword) {
+    return jsonResponse({ success: false, error: '請輸入目前密碼' });
+  }
+  if (!newUsername && !newPassword) {
+    return jsonResponse({ success: false, error: '請輸入新帳號或新密碼' });
+  }
+
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName('帳號');
+  if (!sheet) {
+    return jsonResponse({ success: false, error: '系統錯誤' });
+  }
+
+  var rows = sheet.getDataRange().getValues();
+  var targetRow = -1;
+
+  // 找到目前使用者並驗證密碼
+  for (var i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]).trim() === user.username) {
+      if (String(rows[i][1]).trim() !== currentPassword) {
+        return jsonResponse({ success: false, error: '目前密碼不正確' });
+      }
+      targetRow = i + 1; // Sheet 列號（1-based）
+      break;
+    }
+  }
+
+  if (targetRow === -1) {
+    return jsonResponse({ success: false, error: '找不到帳號' });
+  }
+
+  // 檢查新帳號是否已被使用
+  if (newUsername && newUsername !== user.username) {
+    for (var j = 1; j < rows.length; j++) {
+      if (String(rows[j][0]).trim() === newUsername) {
+        return jsonResponse({ success: false, error: '此帳號已被使用' });
+      }
+    }
+    sheet.getRange(targetRow, 1).setValue(newUsername);
+  }
+
+  // 更新密碼
+  if (newPassword) {
+    sheet.getRange(targetRow, 2).setValue(newPassword);
+  }
+
+  return jsonResponse({ success: true });
 }
 
 // ============================================================
