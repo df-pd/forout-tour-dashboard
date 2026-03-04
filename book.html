@@ -28,17 +28,17 @@
     };
   </script>
 
-  <!-- Google Fonts -->
+  <!-- Google Fonts（含日文、韓文） -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&family=Noto+Sans+JP:wght@400;500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
 
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
 
   <style>
     body {
-      font-family: 'Fira Sans', 'Noto Sans TC', sans-serif;
+      font-family: 'Fira Sans', 'Noto Sans TC', 'Noto Sans JP', 'Noto Sans KR', sans-serif;
       background-color: #F8FAFC;
       color: #1E3A8A;
     }
@@ -47,7 +47,6 @@
       border-color: #3B82F6;
       box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
     }
-    /* 柔和進場動畫 */
     .fade-in {
       animation: fadeIn 0.4s ease-out;
     }
@@ -58,19 +57,32 @@
     @media (prefers-reduced-motion: reduce) {
       .fade-in { animation: none; }
     }
+    .lang-btn.active {
+      background-color: #1E40AF;
+      color: white;
+    }
   </style>
 </head>
 <body class="min-h-screen flex flex-col">
 
   <!-- ===== Header ===== -->
   <header class="bg-white border-b border-slate-200 shadow-sm">
-    <div class="max-w-4xl mx-auto px-4 sm:px-6 py-4 flex items-center gap-3">
-      <div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
-        <i data-lucide="recycle" class="w-5 h-5 text-white"></i>
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
+          <i data-lucide="recycle" class="w-5 h-5 text-white"></i>
+        </div>
+        <div>
+          <h1 class="text-base font-bold text-text-primary leading-tight" data-i18n="headerTitle">大豐環保科技</h1>
+          <p class="text-xs text-text-secondary" data-i18n="headerSub">新北市資源教育基地 · 導覽參訪預約</p>
+        </div>
       </div>
-      <div>
-        <h1 class="text-base font-bold text-text-primary leading-tight">大豐環保科技</h1>
-        <p class="text-xs text-text-secondary">新北市資源教育基地 · 導覽參訪預約</p>
+      <!-- 語言切換 -->
+      <div class="flex gap-1">
+        <button onclick="switchLang('zh-TW')" class="lang-btn active cursor-pointer px-2 py-1 text-xs rounded-md border border-slate-200 hover:bg-slate-50 transition-colors min-h-[32px]" data-lang="zh-TW">中文</button>
+        <button onclick="switchLang('en')" class="lang-btn cursor-pointer px-2 py-1 text-xs rounded-md border border-slate-200 hover:bg-slate-50 transition-colors min-h-[32px]" data-lang="en">EN</button>
+        <button onclick="switchLang('ja')" class="lang-btn cursor-pointer px-2 py-1 text-xs rounded-md border border-slate-200 hover:bg-slate-50 transition-colors min-h-[32px]" data-lang="ja">日本語</button>
+        <button onclick="switchLang('ko')" class="lang-btn cursor-pointer px-2 py-1 text-xs rounded-md border border-slate-200 hover:bg-slate-50 transition-colors min-h-[32px]" data-lang="ko">한국어</button>
       </div>
     </div>
   </header>
@@ -81,7 +93,7 @@
     <!-- 驗證中狀態 -->
     <div id="state-loading" class="text-center py-20 fade-in">
       <div class="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto mb-4"></div>
-      <p class="text-sm text-text-secondary">驗證預約連結中...</p>
+      <p class="text-sm text-text-secondary" data-i18n="loading">驗證預約連結中...</p>
     </div>
 
     <!-- 連結無效狀態 -->
@@ -89,11 +101,11 @@
       <div class="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
         <i data-lucide="x-circle" class="w-8 h-8 text-red-400"></i>
       </div>
-      <h2 class="text-lg font-bold text-text-primary mb-2">連結無效</h2>
-      <p id="invalid-message" class="text-sm text-text-secondary mb-6">此預約連結已失效或不存在</p>
+      <h2 class="text-lg font-bold text-text-primary mb-2" data-i18n="invalidTitle">連結無效</h2>
+      <p id="invalid-message" class="text-sm text-text-secondary mb-6" data-i18n="invalidMsg">此預約連結已失效或不存在</p>
       <a href="index.html" class="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors cursor-pointer">
         <i data-lucide="arrow-left" class="w-4 h-4"></i>
-        回到首頁
+        <span data-i18n="backHome">回到首頁</span>
       </a>
     </div>
 
@@ -106,46 +118,46 @@
           <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 sm:p-6">
             <h2 class="text-base font-bold text-text-primary mb-1 flex items-center gap-2">
               <i data-lucide="calendar-plus" class="w-5 h-5 text-primary"></i>
-              預約導覽參訪
+              <span data-i18n="formTitle">預約導覽參訪</span>
             </h2>
-            <p class="text-xs text-text-secondary mb-5">請填寫以下資訊，我們將盡快與您確認參訪時間。</p>
+            <p class="text-xs text-text-secondary mb-5" data-i18n="formDesc">請填寫以下資訊，我們將盡快與您確認參訪時間。</p>
 
             <form id="booking-form" onsubmit="handleSubmit(event)" class="space-y-4">
               <!-- 參訪日期 + 時段 -->
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label for="visit-date" class="block text-xs font-semibold text-slate-600 mb-1">參訪日期 <span class="text-red-500">*</span></label>
+                  <label for="visit-date" class="block text-xs font-semibold text-slate-600 mb-1"><span data-i18n="labelDate">參訪日期</span> <span class="text-red-500">*</span></label>
                   <input type="date" id="visit-date" required
                     class="form-input w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 transition-colors text-slate-800">
                 </div>
                 <div>
-                  <label for="visit-period" class="block text-xs font-semibold text-slate-600 mb-1">時段 <span class="text-red-500">*</span></label>
+                  <label for="visit-period" class="block text-xs font-semibold text-slate-600 mb-1"><span data-i18n="labelPeriod">時段</span> <span class="text-red-500">*</span></label>
                   <select id="visit-period" required
                     class="form-input w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 transition-colors text-slate-800 cursor-pointer">
-                    <option value="">請選擇時段</option>
-                    <option value="上午 (09:00-12:00)">上午 (09:00-12:00)</option>
-                    <option value="下午 (13:00-17:00)">下午 (13:00-17:00)</option>
+                    <option value="" data-i18n-opt="optSelectPeriod">請選擇時段</option>
+                    <option value="上午 (09:00-12:00)" data-i18n-opt="optAM">上午 (09:00-12:00)</option>
+                    <option value="下午 (13:00-17:00)" data-i18n-opt="optPM">下午 (13:00-17:00)</option>
                   </select>
                 </div>
               </div>
 
               <!-- 公司名稱 -->
               <div>
-                <label for="company" class="block text-xs font-semibold text-slate-600 mb-1">公司 / 機構名稱 <span class="text-red-500">*</span></label>
-                <input type="text" id="company" required placeholder="請輸入公司或機構名稱"
+                <label for="company" class="block text-xs font-semibold text-slate-600 mb-1"><span data-i18n="labelCompany">公司 / 機構名稱</span> <span class="text-red-500">*</span></label>
+                <input type="text" id="company" required data-i18n-ph="phCompany" placeholder="請輸入公司或機構名稱"
                   class="form-input w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 transition-colors text-slate-800 placeholder:text-slate-400">
               </div>
 
               <!-- 聯絡人 + 電話 -->
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label for="contact" class="block text-xs font-semibold text-slate-600 mb-1">聯絡人 <span class="text-red-500">*</span></label>
-                  <input type="text" id="contact" required placeholder="請輸入聯絡人姓名"
+                  <label for="contact" class="block text-xs font-semibold text-slate-600 mb-1"><span data-i18n="labelContact">聯絡人</span> <span class="text-red-500">*</span></label>
+                  <input type="text" id="contact" required data-i18n-ph="phContact" placeholder="請輸入聯絡人姓名"
                     class="form-input w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 transition-colors text-slate-800 placeholder:text-slate-400">
                 </div>
                 <div>
-                  <label for="phone" class="block text-xs font-semibold text-slate-600 mb-1">聯絡電話 <span class="text-red-500">*</span></label>
-                  <input type="tel" id="phone" required placeholder="例：02-1234-5678"
+                  <label for="phone" class="block text-xs font-semibold text-slate-600 mb-1"><span data-i18n="labelPhone">聯絡電話</span> <span class="text-red-500">*</span></label>
+                  <input type="tel" id="phone" required data-i18n-ph="phPhone" placeholder="例：02-1234-5678"
                     class="form-input w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 transition-colors text-slate-800 placeholder:text-slate-400">
                 </div>
               </div>
@@ -153,21 +165,21 @@
               <!-- Email + 人數 -->
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label for="email" class="block text-xs font-semibold text-slate-600 mb-1">Email</label>
-                  <input type="email" id="email" placeholder="選填"
+                  <label for="email" class="block text-xs font-semibold text-slate-600 mb-1"><span data-i18n="labelEmail">Email</span></label>
+                  <input type="email" id="email" data-i18n-ph="phEmail" placeholder="選填"
                     class="form-input w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 transition-colors text-slate-800 placeholder:text-slate-400">
                 </div>
                 <div>
-                  <label for="people" class="block text-xs font-semibold text-slate-600 mb-1">預估人數 <span class="text-red-500">*</span></label>
-                  <input type="number" id="people" required min="1" placeholder="請輸入預估參訪人數"
+                  <label for="people" class="block text-xs font-semibold text-slate-600 mb-1"><span data-i18n="labelPeople">預估人數</span> <span class="text-red-500">*</span></label>
+                  <input type="number" id="people" required min="1" data-i18n-ph="phPeople" placeholder="請輸入預估參訪人數"
                     class="form-input w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 transition-colors text-slate-800 placeholder:text-slate-400">
                 </div>
               </div>
 
               <!-- 備註 -->
               <div>
-                <label for="note" class="block text-xs font-semibold text-slate-600 mb-1">備註</label>
-                <textarea id="note" rows="3" placeholder="如有特殊需求，請在此說明"
+                <label for="note" class="block text-xs font-semibold text-slate-600 mb-1"><span data-i18n="labelNote">備註</span></label>
+                <textarea id="note" rows="3" data-i18n-ph="phNote" placeholder="如有特殊需求，請在此說明"
                   class="form-input w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 transition-colors text-slate-800 placeholder:text-slate-400 resize-vertical"></textarea>
               </div>
 
@@ -178,7 +190,7 @@
               <button type="submit" id="submit-btn"
                 class="cursor-pointer w-full bg-primary hover:bg-primary/90 text-white font-semibold py-3 rounded-lg transition-all duration-200 hover:shadow-lg min-h-[44px] flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed text-sm">
                 <i data-lucide="send" class="w-4 h-4"></i>
-                <span id="submit-text">送出預約</span>
+                <span id="submit-text" data-i18n="btnSubmit">送出預約</span>
               </button>
             </form>
           </div>
@@ -192,9 +204,9 @@
               <div class="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center">
                 <i data-lucide="leaf" class="w-4 h-4 text-green-600"></i>
               </div>
-              <h3 class="text-sm font-bold text-text-primary">關於資源教育基地</h3>
+              <h3 class="text-sm font-bold text-text-primary" data-i18n="aboutTitle">關於資源教育基地</h3>
             </div>
-            <p class="text-xs text-text-secondary leading-relaxed">
+            <p class="text-xs text-text-secondary leading-relaxed" data-i18n="aboutDesc">
               新北市資源教育基地由大豐環保科技營運，透過導覽體驗讓參訪者認識資源回收與再利用流程，推廣環境永續理念。歡迎企業、學校及各機構預約參訪。
             </p>
           </div>
@@ -203,16 +215,16 @@
           <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
             <h3 class="text-sm font-bold text-text-primary mb-3 flex items-center gap-2">
               <i data-lucide="info" class="w-4 h-4 text-secondary"></i>
-              導覽資訊
+              <span data-i18n="infoTitle">導覽資訊</span>
             </h3>
             <ul class="space-y-2.5 text-xs text-text-secondary">
               <li class="flex items-start gap-2">
                 <i data-lucide="clock" class="w-3.5 h-3.5 text-slate-400 mt-0.5 flex-shrink-0"></i>
-                <span>導覽時間約 60–90 分鐘</span>
+                <span data-i18n="infoDuration">導覽時間約 60–90 分鐘</span>
               </li>
               <li class="flex items-start gap-2">
                 <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400 mt-0.5 flex-shrink-0"></i>
-                <span>除週三及週日外皆可預約</span>
+                <span data-i18n="infoAvailable">除週三及週日外皆可預約</span>
               </li>
             </ul>
           </div>
@@ -221,15 +233,15 @@
           <div class="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl border border-emerald-200/60 p-5">
             <h3 class="text-sm font-bold text-emerald-800 mb-2 flex items-center gap-2">
               <i data-lucide="sparkles" class="w-4 h-4 text-emerald-600"></i>
-              廢棄物資訊管理系統
+              <span data-i18n="promoTitle">廢棄物資訊管理系統</span>
             </h3>
-            <p class="text-xs text-slate-600 leading-relaxed mb-3">
+            <p class="text-xs text-slate-600 leading-relaxed mb-3" data-i18n="promoDesc">
               AI 智慧升級，客製化打造您的廢棄物追蹤、申報與數據分析平台。從月報生成到即時監控，一站搞定。
             </p>
             <div class="flex flex-wrap gap-1.5 mb-3">
-              <span class="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">AI 智慧分析</span>
-              <span class="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">自動申報</span>
-              <span class="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">即時追蹤</span>
+              <span class="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full" data-i18n="promoTag1">AI 智慧分析</span>
+              <span class="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full" data-i18n="promoTag2">自動申報</span>
+              <span class="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full" data-i18n="promoTag3">即時追蹤</span>
             </div>
             <div class="pt-3 border-t border-emerald-200/60 space-y-1.5 text-xs text-slate-600">
               <p class="flex items-center gap-1.5">
@@ -251,9 +263,9 @@
       <div class="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-4">
         <i data-lucide="check-circle-2" class="w-8 h-8 text-green-500"></i>
       </div>
-      <h2 class="text-lg font-bold text-text-primary mb-2">預約已送出！</h2>
-      <p class="text-sm text-text-secondary mb-2">感謝您的預約，我們將盡快與您聯繫確認參訪時間。</p>
-      <p class="text-xs text-text-secondary">如有任何問題，歡迎來電洽詢：</p>
+      <h2 class="text-lg font-bold text-text-primary mb-2" data-i18n="successTitle">預約已送出！</h2>
+      <p class="text-sm text-text-secondary mb-2" data-i18n="successMsg">感謝您的預約，我們將盡快與您聯繫確認參訪時間。</p>
+      <p class="text-xs text-text-secondary" data-i18n="successContact">如有任何問題，歡迎來電洽詢：</p>
       <a href="tel:0983526761" class="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:text-primary/80 transition-colors cursor-pointer mt-1">
         <i data-lucide="phone" class="w-4 h-4"></i>
         0983-526-761（葉庭誠 管理師）
@@ -266,16 +278,251 @@
   <footer class="border-t border-slate-200 bg-white mt-auto">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 py-4 text-center">
       <p class="text-xs text-text-secondary">
-        &copy; <span id="footerYear"></span> 大豐環保科技股份有限公司
+        &copy; <span id="footerYear"></span> <span data-i18n="footer">大豐環保科技股份有限公司</span>
       </p>
     </div>
   </footer>
 
   <script>
-    // Google Apps Script Web App URL
+    // ============================================================
+    // 多語系翻譯
+    // ============================================================
+
+    const i18n = {
+      'zh-TW': {
+        headerTitle: '大豐環保科技',
+        headerSub: '新北市資源教育基地 · 導覽參訪預約',
+        loading: '驗證預約連結中...',
+        invalidTitle: '連結無效',
+        invalidMsg: '此預約連結已失效或不存在',
+        invalidNoCode: '缺少預約代碼，請確認連結是否正確。',
+        invalidNetwork: '連線失敗，請檢查網路後重新整理頁面。',
+        backHome: '回到首頁',
+        formTitle: '預約導覽參訪',
+        formDesc: '請填寫以下資訊，我們將盡快與您確認參訪時間。',
+        labelDate: '參訪日期',
+        labelPeriod: '時段',
+        optSelectPeriod: '請選擇時段',
+        optAM: '上午 (09:00-12:00)',
+        optPM: '下午 (13:00-17:00)',
+        labelCompany: '公司 / 機構名稱',
+        phCompany: '請輸入公司或機構名稱',
+        labelContact: '聯絡人',
+        phContact: '請輸入聯絡人姓名',
+        labelPhone: '聯絡電話',
+        phPhone: '例：02-1234-5678',
+        labelEmail: 'Email',
+        phEmail: '選填',
+        labelPeople: '預估人數',
+        phPeople: '請輸入預估參訪人數',
+        labelNote: '備註',
+        phNote: '如有特殊需求，請在此說明',
+        btnSubmit: '送出預約',
+        btnSubmitting: '送出中...',
+        errorSubmitFail: '預約失敗，請稍後再試',
+        errorNetwork: '連線失敗，請檢查網路後重試',
+        aboutTitle: '關於資源教育基地',
+        aboutDesc: '新北市資源教育基地由大豐環保科技營運，透過導覽體驗讓參訪者認識資源回收與再利用流程，推廣環境永續理念。歡迎企業、學校及各機構預約參訪。',
+        infoTitle: '導覽資訊',
+        infoDuration: '導覽時間約 60–90 分鐘',
+        infoAvailable: '除週三及週日外皆可預約',
+        promoTitle: '廢棄物資訊管理系統',
+        promoDesc: 'AI 智慧升級，客製化打造您的廢棄物追蹤、申報與數據分析平台。從月報生成到即時監控，一站搞定。',
+        promoTag1: 'AI 智慧分析',
+        promoTag2: '自動申報',
+        promoTag3: '即時追蹤',
+        successTitle: '預約已送出！',
+        successMsg: '感謝您的預約，我們將盡快與您聯繫確認參訪時間。',
+        successContact: '如有任何問題，歡迎來電洽詢：',
+        footer: '大豐環保科技股份有限公司',
+      },
+      en: {
+        headerTitle: 'Da Fon Environmental Technology',
+        headerSub: 'New Taipei Resource Education Base · Tour Booking',
+        loading: 'Verifying booking link...',
+        invalidTitle: 'Invalid Link',
+        invalidMsg: 'This booking link is expired or does not exist.',
+        invalidNoCode: 'Missing booking code. Please check your link.',
+        invalidNetwork: 'Connection failed. Please check your network and refresh.',
+        backHome: 'Back to Home',
+        formTitle: 'Book a Guided Tour',
+        formDesc: 'Please fill in the information below. We will confirm your visit shortly.',
+        labelDate: 'Visit Date',
+        labelPeriod: 'Time Slot',
+        optSelectPeriod: 'Select a time slot',
+        optAM: 'Morning (09:00-12:00)',
+        optPM: 'Afternoon (13:00-17:00)',
+        labelCompany: 'Company / Organization',
+        phCompany: 'Enter company or organization name',
+        labelContact: 'Contact Person',
+        phContact: 'Enter contact name',
+        labelPhone: 'Phone',
+        phPhone: 'e.g. +886-2-1234-5678',
+        labelEmail: 'Email',
+        phEmail: 'Optional',
+        labelPeople: 'Est. Visitors',
+        phPeople: 'Enter estimated number of visitors',
+        labelNote: 'Notes',
+        phNote: 'Any special requirements',
+        btnSubmit: 'Submit Booking',
+        btnSubmitting: 'Submitting...',
+        errorSubmitFail: 'Booking failed. Please try again later.',
+        errorNetwork: 'Connection failed. Please check your network.',
+        aboutTitle: 'About the Education Base',
+        aboutDesc: 'The New Taipei Resource Education Base, operated by Da Fon Environmental Technology, offers guided tours to learn about recycling and resource reuse, promoting environmental sustainability. Companies, schools, and organizations are welcome.',
+        infoTitle: 'Tour Info',
+        infoDuration: 'Tour duration: approx. 60–90 min',
+        infoAvailable: 'Available all days except Wed & Sun',
+        promoTitle: 'Waste Info Management System',
+        promoDesc: 'AI-powered upgrade — custom-built waste tracking, reporting, and data analytics platform. From monthly reports to real-time monitoring, all in one.',
+        promoTag1: 'AI Analytics',
+        promoTag2: 'Auto Reporting',
+        promoTag3: 'Real-time Tracking',
+        successTitle: 'Booking Submitted!',
+        successMsg: 'Thank you for your booking. We will contact you shortly to confirm.',
+        successContact: 'For any questions, please call:',
+        footer: 'Da Fon Environmental Technology Co., Ltd.',
+      },
+      ja: {
+        headerTitle: '大豊環保科技',
+        headerSub: '新北市資源教育基地 · 見学予約',
+        loading: '予約リンクを確認中...',
+        invalidTitle: 'リンク無効',
+        invalidMsg: 'この予約リンクは期限切れまたは存在しません。',
+        invalidNoCode: '予約コードがありません。リンクをご確認ください。',
+        invalidNetwork: '接続に失敗しました。ネットワークを確認して更新してください。',
+        backHome: 'トップページへ',
+        formTitle: '見学ツアー予約',
+        formDesc: '以下の情報をご記入ください。確認後、折り返しご連絡いたします。',
+        labelDate: '見学日',
+        labelPeriod: '時間帯',
+        optSelectPeriod: '時間帯を選択',
+        optAM: '午前 (09:00-12:00)',
+        optPM: '午後 (13:00-17:00)',
+        labelCompany: '会社名 / 団体名',
+        phCompany: '会社名または団体名を入力',
+        labelContact: '担当者',
+        phContact: '担当者名を入力',
+        labelPhone: '電話番号',
+        phPhone: '例：+886-2-1234-5678',
+        labelEmail: 'メール',
+        phEmail: '任意',
+        labelPeople: '予定人数',
+        phPeople: '予定人数を入力',
+        labelNote: '備考',
+        phNote: '特別なご要望がございましたらご記入ください',
+        btnSubmit: '予約を送信',
+        btnSubmitting: '送信中...',
+        errorSubmitFail: '予約に失敗しました。後ほど再試行してください。',
+        errorNetwork: '接続に失敗しました。ネットワークを確認してください。',
+        aboutTitle: '資源教育基地について',
+        aboutDesc: '新北市資源教育基地は大豊環保科技が運営し、ガイドツアーを通じてリサイクルと資源再利用の流れを紹介し、環境持続可能性を推進しています。企業、学校、各団体の見学を歓迎します。',
+        infoTitle: 'ツアー情報',
+        infoDuration: '所要時間：約 60～90 分',
+        infoAvailable: '水曜・日曜を除き予約可能',
+        promoTitle: '廃棄物情報管理システム',
+        promoDesc: 'AI搭載アップグレード — 廃棄物の追跡、届出、データ分析プラットフォームをカスタム構築。月報からリアルタイム監視まで一括管理。',
+        promoTag1: 'AI 分析',
+        promoTag2: '自動届出',
+        promoTag3: 'リアルタイム追跡',
+        successTitle: '予約送信完了！',
+        successMsg: 'ご予約ありがとうございます。確認後、折り返しご連絡いたします。',
+        successContact: 'ご質問がございましたらお電話ください：',
+        footer: '大豊環保科技股份有限公司',
+      },
+      ko: {
+        headerTitle: '다펑 환경기술',
+        headerSub: '신베이시 자원교육기지 · 견학 예약',
+        loading: '예약 링크 확인 중...',
+        invalidTitle: '링크 무효',
+        invalidMsg: '이 예약 링크는 만료되었거나 존재하지 않습니다.',
+        invalidNoCode: '예약 코드가 없습니다. 링크를 확인해주세요.',
+        invalidNetwork: '연결에 실패했습니다. 네트워크를 확인하고 새로고침해주세요.',
+        backHome: '홈으로',
+        formTitle: '견학 투어 예약',
+        formDesc: '아래 정보를 입력해주세요. 확인 후 연락드리겠습니다.',
+        labelDate: '방문일',
+        labelPeriod: '시간대',
+        optSelectPeriod: '시간대 선택',
+        optAM: '오전 (09:00-12:00)',
+        optPM: '오후 (13:00-17:00)',
+        labelCompany: '회사 / 기관명',
+        phCompany: '회사 또는 기관명을 입력',
+        labelContact: '담당자',
+        phContact: '담당자 이름을 입력',
+        labelPhone: '전화번호',
+        phPhone: '예: +886-2-1234-5678',
+        labelEmail: '이메일',
+        phEmail: '선택사항',
+        labelPeople: '예상 인원',
+        phPeople: '예상 방문 인원을 입력',
+        labelNote: '비고',
+        phNote: '특별한 요청사항이 있으시면 기재해주세요',
+        btnSubmit: '예약 제출',
+        btnSubmitting: '제출 중...',
+        errorSubmitFail: '예약에 실패했습니다. 나중에 다시 시도해주세요.',
+        errorNetwork: '연결에 실패했습니다. 네트워크를 확인해주세요.',
+        aboutTitle: '자원교육기지 소개',
+        aboutDesc: '신베이시 자원교육기지는 다펑 환경기술이 운영하며, 가이드 투어를 통해 재활용 및 자원 재이용 과정을 소개하고 환경 지속가능성을 추진합니다. 기업, 학교, 각 기관의 견학을 환영합니다.',
+        infoTitle: '투어 정보',
+        infoDuration: '소요시간: 약 60~90분',
+        infoAvailable: '수요일·일요일을 제외하고 예약 가능',
+        promoTitle: '폐기물 정보관리 시스템',
+        promoDesc: 'AI 기반 업그레이드 — 폐기물 추적, 신고, 데이터 분석 플랫폼을 맞춤 구축. 월간 보고서부터 실시간 모니터링까지 올인원.',
+        promoTag1: 'AI 분석',
+        promoTag2: '자동 신고',
+        promoTag3: '실시간 추적',
+        successTitle: '예약이 제출되었습니다!',
+        successMsg: '예약해주셔서 감사합니다. 확인 후 연락드리겠습니다.',
+        successContact: '문의사항이 있으시면 전화해주세요:',
+        footer: '다펑환경기술주식회사',
+      }
+    };
+
+    let currentLang = 'zh-TW';
+
+    function switchLang(lang) {
+      if (!i18n[lang]) return;
+      currentLang = lang;
+
+      // 更新 html lang 屬性
+      document.documentElement.lang = lang === 'zh-TW' ? 'zh-TW' : lang;
+
+      // 切換按鈕高亮
+      document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.lang === lang);
+      });
+
+      const t = i18n[lang];
+
+      // 更新 data-i18n 文字
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.dataset.i18n;
+        if (t[key] !== undefined) el.textContent = t[key];
+      });
+
+      // 更新 placeholder
+      document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+        const key = el.dataset.i18nPh;
+        if (t[key] !== undefined) el.placeholder = t[key];
+      });
+
+      // 更新 select option 文字
+      document.querySelectorAll('[data-i18n-opt]').forEach(el => {
+        const key = el.dataset.i18nOpt;
+        if (t[key] !== undefined) el.textContent = t[key];
+      });
+
+      // 儲存語言偏好
+      try { localStorage.setItem('book_lang', lang); } catch {}
+    }
+
+    // ============================================================
+    // Google Apps Script
+    // ============================================================
+
     const GAS_URL = 'https://script.google.com/macros/s/AKfycbxJnBjVuPweU9SsqwxNF8YuPAyQJNtkp3M0G_6udXijr9vUkUAR2adYQkr3mR54EalwSw/exec';
 
-    // 從 URL 取得預約代碼
     const urlParams = new URLSearchParams(window.location.search);
     const bookingCode = (urlParams.get('code') || '').trim().toUpperCase();
 
@@ -294,8 +541,9 @@
     // ============================================================
 
     async function validateCode() {
+      const t = i18n[currentLang];
       if (!bookingCode) {
-        document.getElementById('invalid-message').textContent = '缺少預約代碼，請確認連結是否正確。';
+        document.getElementById('invalid-message').textContent = t.invalidNoCode;
         showState('invalid');
         return;
       }
@@ -310,15 +558,14 @@
 
         if (result.success) {
           showState('form');
-          // 設定日期最小值
           const dateInput = document.getElementById('visit-date');
           dateInput.min = new Date().toISOString().split('T')[0];
         } else {
-          document.getElementById('invalid-message').textContent = result.error || '此預約連結無效';
+          document.getElementById('invalid-message').textContent = result.error || t.invalidMsg;
           showState('invalid');
         }
       } catch (err) {
-        document.getElementById('invalid-message').textContent = '連線失敗，請檢查網路後重新整理頁面。';
+        document.getElementById('invalid-message').textContent = t.invalidNetwork;
         showState('invalid');
       }
     }
@@ -329,13 +576,14 @@
 
     async function handleSubmit(e) {
       e.preventDefault();
+      const t = i18n[currentLang];
 
       const btn = document.getElementById('submit-btn');
       const textEl = document.getElementById('submit-text');
       const errorEl = document.getElementById('form-error');
 
       btn.disabled = true;
-      textEl.textContent = '送出中...';
+      textEl.textContent = t.btnSubmitting;
       errorEl.classList.add('hidden');
 
       const data = {
@@ -362,15 +610,15 @@
         if (result.success) {
           showState('success');
         } else {
-          errorEl.textContent = result.error || '預約失敗，請稍後再試';
+          errorEl.textContent = result.error || t.errorSubmitFail;
           errorEl.classList.remove('hidden');
         }
       } catch (err) {
-        errorEl.textContent = '連線失敗，請檢查網路後重試';
+        errorEl.textContent = t.errorNetwork;
         errorEl.classList.remove('hidden');
       } finally {
         btn.disabled = false;
-        textEl.textContent = '送出預約';
+        textEl.textContent = t.btnSubmit;
       }
     }
 
@@ -381,6 +629,13 @@
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('footerYear').textContent = new Date().getFullYear();
       lucide.createIcons();
+
+      // 讀取語言偏好（URL 參數優先 > localStorage > 預設中文）
+      const urlLang = urlParams.get('lang');
+      const savedLang = localStorage.getItem('book_lang');
+      const initLang = (urlLang && i18n[urlLang]) ? urlLang : (savedLang && i18n[savedLang]) ? savedLang : 'zh-TW';
+      switchLang(initLang);
+
       validateCode();
     });
   </script>
