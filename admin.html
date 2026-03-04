@@ -108,8 +108,36 @@
       100% { background-position: -200% 0; }
     }
 
+    /* QA 手風琴 */
+    .accordion-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 200ms ease, padding 200ms ease;
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+    .accordion-content.open {
+      max-height: 500px;
+      padding-top: 0.75rem;
+      padding-bottom: 0.75rem;
+    }
+
+    /* QA 篩選按鈕 */
+    .qa-filter-btn {
+      transition: all 200ms ease;
+    }
+    .qa-filter-btn.active {
+      background-color: rgba(30, 64, 175, 0.1);
+      border-color: #1E40AF;
+      color: #1E40AF;
+      font-weight: 600;
+    }
+    .qa-filter-btn:not(.active):hover {
+      background-color: #f1f5f9;
+    }
+
     @media (prefers-reduced-motion: reduce) {
-      .skeleton, .kpi-card, .tab-btn {
+      .skeleton, .kpi-card, .tab-btn, .accordion-content {
         animation: none;
         transition: none;
       }
@@ -152,23 +180,29 @@
 
     <!-- Tab 切換 -->
     <div class="border-b border-slate-200">
-      <nav class="flex gap-8">
-        <button class="tab-btn active pb-3 text-sm cursor-pointer" data-tab="booking" onclick="switchTab('booking')">
+      <nav class="flex gap-4 sm:gap-8 overflow-x-auto">
+        <button class="tab-btn active pb-3 text-sm cursor-pointer whitespace-nowrap" data-tab="booking" onclick="switchTab('booking')">
           <span class="flex items-center gap-2">
             <i data-lucide="calendar-plus" class="w-4 h-4"></i>
             預約參訪
           </span>
         </button>
-        <button class="tab-btn pb-3 text-sm text-text-secondary cursor-pointer" data-tab="list" onclick="switchTab('list')">
+        <button class="tab-btn pb-3 text-sm text-text-secondary cursor-pointer whitespace-nowrap" data-tab="list" onclick="switchTab('list')">
           <span class="flex items-center gap-2">
             <i data-lucide="list" class="w-4 h-4"></i>
             預約清單
           </span>
         </button>
-        <button class="tab-btn pb-3 text-sm text-text-secondary cursor-pointer" data-tab="stats" onclick="switchTab('stats')">
+        <button class="tab-btn pb-3 text-sm text-text-secondary cursor-pointer whitespace-nowrap" data-tab="stats" onclick="switchTab('stats')">
           <span class="flex items-center gap-2">
             <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
             內部統計
+          </span>
+        </button>
+        <button class="tab-btn pb-3 text-sm text-text-secondary cursor-pointer whitespace-nowrap" data-tab="qa" onclick="switchTab('qa')">
+          <span class="flex items-center gap-2">
+            <i data-lucide="help-circle" class="w-4 h-4"></i>
+            內部 QA
           </span>
         </button>
       </nav>
@@ -322,67 +356,218 @@
     <!-- ===== Tab 3：內部統計 ===== -->
     <div id="tab-stats" class="hidden">
 
-      <!-- KPI 卡片區 -->
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <!-- 本月預約 -->
-        <div class="kpi-card bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
-          <div class="flex items-center justify-between mb-3">
-            <span class="text-xs font-medium text-text-secondary uppercase tracking-wider">本月預約</span>
-            <div class="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
-              <i data-lucide="calendar" class="w-4 h-4 text-primary"></i>
-            </div>
-          </div>
-          <div id="kpi-month-bookings" class="text-3xl font-bold font-mono text-text-primary">
-            <div class="skeleton h-9 w-12"></div>
-          </div>
-          <p class="text-xs text-text-secondary mt-1">筆</p>
+      <!-- 導覽統計區塊 -->
+      <div class="mb-8">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-sm font-bold text-text-primary flex items-center gap-2">
+            <i data-lucide="map-pin" class="w-4 h-4 text-primary"></i>
+            歷史導覽統計
+          </h3>
+          <button onclick="refreshTourStats()" id="stats-refresh-btn" class="cursor-pointer flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-primary bg-primary/5 hover:bg-primary/10 rounded-lg transition-colors min-h-[44px]">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5" id="stats-refresh-icon"></i>
+            <span class="hidden sm:inline">重新整理</span>
+          </button>
         </div>
 
-        <!-- 總預約數 -->
-        <div class="kpi-card bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
-          <div class="flex items-center justify-between mb-3">
-            <span class="text-xs font-medium text-text-secondary uppercase tracking-wider">總預約數</span>
-            <div class="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center">
-              <i data-lucide="clipboard-list" class="w-4 h-4 text-accent"></i>
+        <!-- 導覽 KPI 卡片區 -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+          <!-- 總導覽場次 -->
+          <div class="kpi-card bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-medium text-text-secondary uppercase tracking-wider">總場次</span>
+              <div class="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+                <i data-lucide="calendar-check" class="w-4 h-4 text-primary"></i>
+              </div>
             </div>
+            <div id="kpi-tour-sessions" class="text-3xl font-bold font-mono text-text-primary">
+              <div class="skeleton h-9 w-12"></div>
+            </div>
+            <p class="text-xs text-text-secondary mt-1">場</p>
           </div>
-          <div id="kpi-total-bookings" class="text-3xl font-bold font-mono text-text-primary">
-            <div class="skeleton h-9 w-16"></div>
+
+          <!-- 總參訪人數 -->
+          <div class="kpi-card bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-medium text-text-secondary uppercase tracking-wider">總人數</span>
+              <div class="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center">
+                <i data-lucide="users" class="w-4 h-4 text-green-600"></i>
+              </div>
+            </div>
+            <div id="kpi-tour-people" class="text-3xl font-bold font-mono text-text-primary">
+              <div class="skeleton h-9 w-16"></div>
+            </div>
+            <p class="text-xs text-text-secondary mt-1">人次</p>
           </div>
-          <p class="text-xs text-text-secondary mt-1">筆</p>
+
+          <!-- 平均每場 -->
+          <div class="kpi-card bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-medium text-text-secondary uppercase tracking-wider">平均每場</span>
+              <div class="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center">
+                <i data-lucide="trending-up" class="w-4 h-4 text-accent"></i>
+              </div>
+            </div>
+            <div id="kpi-tour-avg" class="text-3xl font-bold font-mono text-text-primary">
+              <div class="skeleton h-9 w-14"></div>
+            </div>
+            <p class="text-xs text-text-secondary mt-1">人</p>
+          </div>
+
+          <!-- 本月場次 -->
+          <div class="kpi-card bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-medium text-text-secondary uppercase tracking-wider">本月場次</span>
+              <div class="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
+                <i data-lucide="calendar" class="w-4 h-4 text-purple-600"></i>
+              </div>
+            </div>
+            <div id="kpi-tour-month" class="text-3xl font-bold font-mono text-text-primary">
+              <div class="skeleton h-9 w-10"></div>
+            </div>
+            <p class="text-xs text-text-secondary mt-1">場</p>
+          </div>
         </div>
 
-        <!-- 總預估人數 -->
-        <div class="kpi-card bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
-          <div class="flex items-center justify-between mb-3">
-            <span class="text-xs font-medium text-text-secondary uppercase tracking-wider">總預估人數</span>
-            <div class="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center">
-              <i data-lucide="users" class="w-4 h-4 text-green-600"></i>
+        <!-- 導覽圖表區 -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <!-- 月度趨勢圖 -->
+          <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+            <h3 class="text-sm font-semibold text-text-primary mb-4">月度趨勢（場次 + 人數）</h3>
+            <div class="relative" style="height: 280px;">
+              <canvas id="chartTourMonthly"></canvas>
             </div>
           </div>
-          <div id="kpi-total-people" class="text-3xl font-bold font-mono text-text-primary">
-            <div class="skeleton h-9 w-20"></div>
+
+          <!-- 單位分佈圖 -->
+          <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+            <h3 class="text-sm font-semibold text-text-primary mb-4">單位分佈（前 10）</h3>
+            <div class="relative" style="height: 280px;">
+              <canvas id="chartTourUnit"></canvas>
+            </div>
           </div>
-          <p class="text-xs text-text-secondary mt-1">人次</p>
+        </div>
+
+        <!-- 國家分佈圖 -->
+        <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm mb-6">
+          <h3 class="text-sm font-semibold text-text-primary mb-4">國家分佈</h3>
+          <div class="relative" style="height: 280px;">
+            <canvas id="chartTourCountry"></canvas>
+          </div>
         </div>
       </div>
 
-      <!-- 圖表區 -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- 預約趨勢圖（折線圖） -->
-        <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
-          <h3 class="text-sm font-semibold text-text-primary mb-4">預約趨勢</h3>
-          <div class="relative" style="height: 280px;">
-            <canvas id="chartBookingTrend"></canvas>
+      <!-- 預約統計區塊 -->
+      <div>
+        <h3 class="text-sm font-bold text-text-primary mb-4 flex items-center gap-2">
+          <i data-lucide="clipboard-list" class="w-4 h-4 text-accent"></i>
+          預約統計
+        </h3>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+          <!-- 本月預約 -->
+          <div class="kpi-card bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-medium text-text-secondary uppercase tracking-wider">本月預約</span>
+              <div class="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+                <i data-lucide="calendar" class="w-4 h-4 text-primary"></i>
+              </div>
+            </div>
+            <div id="kpi-month-bookings" class="text-3xl font-bold font-mono text-text-primary">
+              <div class="skeleton h-9 w-12"></div>
+            </div>
+            <p class="text-xs text-text-secondary mt-1">筆</p>
+          </div>
+
+          <!-- 總預約數 -->
+          <div class="kpi-card bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-medium text-text-secondary uppercase tracking-wider">總預約數</span>
+              <div class="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center">
+                <i data-lucide="clipboard-list" class="w-4 h-4 text-accent"></i>
+              </div>
+            </div>
+            <div id="kpi-total-bookings" class="text-3xl font-bold font-mono text-text-primary">
+              <div class="skeleton h-9 w-16"></div>
+            </div>
+            <p class="text-xs text-text-secondary mt-1">筆</p>
+          </div>
+
+          <!-- 總預估人數 -->
+          <div class="kpi-card bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-medium text-text-secondary uppercase tracking-wider">總預估人數</span>
+              <div class="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center">
+                <i data-lucide="users" class="w-4 h-4 text-green-600"></i>
+              </div>
+            </div>
+            <div id="kpi-total-people" class="text-3xl font-bold font-mono text-text-primary">
+              <div class="skeleton h-9 w-20"></div>
+            </div>
+            <p class="text-xs text-text-secondary mt-1">人次</p>
           </div>
         </div>
 
-        <!-- 時段分佈圖（圓餅圖） -->
-        <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
-          <h3 class="text-sm font-semibold text-text-primary mb-4">時段分佈</h3>
-          <div class="relative" style="height: 280px;">
-            <canvas id="chartPeriodDist"></canvas>
+        <!-- 預約圖表區 -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+            <h3 class="text-sm font-semibold text-text-primary mb-4">預約趨勢</h3>
+            <div class="relative" style="height: 280px;">
+              <canvas id="chartBookingTrend"></canvas>
+            </div>
           </div>
+          <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+            <h3 class="text-sm font-semibold text-text-primary mb-4">時段分佈</h3>
+            <div class="relative" style="height: 280px;">
+              <canvas id="chartPeriodDist"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Tab 4：內部 QA ===== -->
+    <div id="tab-qa" class="hidden">
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 sm:p-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+          <h3 class="text-sm font-bold text-text-primary flex items-center gap-2">
+            <i data-lucide="help-circle" class="w-4 h-4 text-primary"></i>
+            內部 QA
+          </h3>
+          <button onclick="loadInternalQA()" class="cursor-pointer flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-primary bg-primary/5 hover:bg-primary/10 rounded-lg transition-colors min-h-[44px]">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+            <span class="hidden sm:inline">重新整理</span>
+          </button>
+        </div>
+
+        <!-- QA 分類篩選 -->
+        <div id="qa-category-filters" class="flex flex-wrap gap-2 mb-4">
+          <button class="qa-filter-btn active px-4 py-1.5 text-xs rounded-full border border-primary bg-primary/5 text-primary font-semibold cursor-pointer transition-colors" onclick="filterInternalQA('all')">全部</button>
+        </div>
+
+        <!-- QA 搜尋 -->
+        <div class="relative mb-4">
+          <i data-lucide="search" class="w-4 h-4 text-text-secondary absolute left-3 top-1/2 -translate-y-1/2"></i>
+          <input
+            type="text"
+            id="qa-search-input"
+            placeholder="搜尋問題或答案..."
+            class="search-input pl-9 pr-4 py-2.5 text-sm border border-slate-200 rounded-lg w-full transition-all"
+            oninput="filterInternalQABySearch()"
+          >
+        </div>
+
+        <!-- QA 列表 -->
+        <div id="qa-list" class="space-y-3">
+          <div class="skeleton h-16 w-full"></div>
+          <div class="skeleton h-16 w-full"></div>
+          <div class="skeleton h-16 w-full"></div>
+        </div>
+
+        <!-- QA 空狀態 -->
+        <div id="qa-empty" class="hidden text-center py-16">
+          <i data-lucide="inbox" class="w-12 h-12 text-slate-300 mx-auto mb-3"></i>
+          <p class="text-text-secondary text-sm">尚無 QA 資料</p>
+          <p class="text-text-secondary text-xs mt-1">請在 Google Sheet 中設定 QA 工作表的 GID</p>
         </div>
       </div>
     </div>
@@ -405,12 +590,32 @@
     if (!Auth.guard()) throw new Error('未登入');
 
     // ============================================================
+    // 設定區 — Google Sheets 資訊（與 index.html 一致）
+    // ============================================================
+    const CONFIG = {
+      SHEET_ID: '1SlGXwWgjjqoywFYx3nkE-7YolFfdLkK-Q1JuaT4Kt5Y',
+      PUBLISHED_KEY: '2PACX-1vRs6O6yhomyci12NhBmog0EmqIJVRCL9qzBfLoCwY_A1NMwHXGfqbXw2yiH18kN61Sb09u6s_3rqfls',
+      TOUR_SHEET_GID: '693491083',
+      QA_SHEET_GID: '',  // QA 工作表 gid，日後填入
+    };
+
+    // ============================================================
     // 全域狀態
     // ============================================================
     let bookingsData = [];         // 預約記錄原始資料
     let filteredBookings = [];     // 篩選後的預約資料
-    let trendChart = null;         // 趨勢圖表實例
-    let periodChart = null;        // 時段分佈圖表實例
+    let tourData = [];             // 導覽記錄原始資料
+    let qaData = [];               // QA 原始資料
+    let filteredQAData = [];       // 篩選後的 QA 資料
+    let activeQAFilter = 'all';    // QA 分類篩選
+
+    // 圖表實例
+    let trendChart = null;
+    let periodChart = null;
+    let tourMonthlyChart = null;
+    let tourUnitChart = null;
+    let tourCountryChart = null;
+    let tourStatsLoaded = false;
 
     // ============================================================
     // 工具函式
@@ -426,16 +631,132 @@
       return div.innerHTML;
     }
 
+    /**
+     * 解析各種日期格式
+     */
+    function parseDate(str) {
+      if (!str) return null;
+      let d;
+      d = new Date(str.replace(/\//g, '-'));
+      if (!isNaN(d.getTime())) return d;
+      const parts = str.split(/[\/\-\.]/);
+      if (parts.length === 2) {
+        const month = parseInt(parts[0]) - 1;
+        const day = parseInt(parts[1]);
+        d = new Date(new Date().getFullYear(), month, day);
+        if (!isNaN(d.getTime())) return d;
+      }
+      const match = str.match(/(\d{1,2})\s*月\s*(\d{1,2})\s*日?/);
+      if (match) {
+        d = new Date(new Date().getFullYear(), parseInt(match[1]) - 1, parseInt(match[2]));
+        if (!isNaN(d.getTime())) return d;
+      }
+      return null;
+    }
+
+    // ============================================================
+    // Google Sheets 資料載入
+    // ============================================================
+
+    /**
+     * JSONP 方式讀取 Google Sheets
+     */
+    function loadSheetData(gid) {
+      return new Promise((resolve, reject) => {
+        const callbackName = '_gsheetCb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+        const script = document.createElement('script');
+        script.src = `https://docs.google.com/spreadsheets/d/${CONFIG.SHEET_ID}/gviz/tq?tqx=responseHandler:${callbackName}&gid=${gid}`;
+
+        const timeout = setTimeout(() => { cleanup(); reject(new Error('載入逾時')); }, 10000);
+
+        function cleanup() {
+          clearTimeout(timeout);
+          delete window[callbackName];
+          if (script.parentNode) script.parentNode.removeChild(script);
+        }
+
+        window[callbackName] = function(response) {
+          cleanup();
+          if (response.status === 'ok' && response.table) {
+            resolve(response.table);
+          } else {
+            reject(new Error(response.errors?.[0]?.message || '資料讀取失敗'));
+          }
+        };
+
+        script.onerror = function() { cleanup(); reject(new Error('Script 載入失敗')); };
+        document.head.appendChild(script);
+      });
+    }
+
+    /**
+     * 備援：CSV 端點讀取
+     */
+    async function loadSheetCSV(gid) {
+      const url = `https://docs.google.com/spreadsheets/d/e/${CONFIG.PUBLISHED_KEY}/pub?gid=${gid}&single=true&output=csv`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = await res.text();
+      return parseCSV(text);
+    }
+
+    /**
+     * 簡易 CSV 解析
+     */
+    function parseCSV(text) {
+      const rows = [];
+      let current = '';
+      let inQuotes = false;
+      const chars = text.split('');
+      for (let i = 0; i < chars.length; i++) {
+        const c = chars[i];
+        if (c === '"') {
+          if (inQuotes && chars[i + 1] === '"') { current += '"'; i++; }
+          else inQuotes = !inQuotes;
+        } else if (c === ',' && !inQuotes) {
+          if (!rows.length || rows[rows.length - 1] === null) rows.push([current]);
+          else rows[rows.length - 1].push(current);
+          current = '';
+        } else if ((c === '\n' || c === '\r') && !inQuotes) {
+          if (c === '\r' && chars[i + 1] === '\n') i++;
+          if (!rows.length || rows[rows.length - 1] === null) rows.push([current]);
+          else rows[rows.length - 1].push(current);
+          current = '';
+          rows.push(null);
+        } else {
+          current += c;
+        }
+      }
+      if (current || (rows.length && rows[rows.length - 1] !== null)) {
+        if (!rows.length || rows[rows.length - 1] === null) rows.push([current]);
+        else rows[rows.length - 1].push(current);
+      }
+      return rows.filter(r => r !== null && r.some(cell => cell.trim() !== ''));
+    }
+
+    /**
+     * Google Visualization table → 二維陣列
+     */
+    function tableToRows(table) {
+      const header = table.cols.map(c => c.label || '');
+      const rows = [header];
+      table.rows.forEach(row => {
+        const cells = row.c.map(cell => {
+          if (!cell) return '';
+          if (cell.f !== undefined && cell.f !== null) return String(cell.f);
+          if (cell.v !== undefined && cell.v !== null) return String(cell.v);
+          return '';
+        });
+        rows.push(cells);
+      });
+      return rows;
+    }
+
     // ============================================================
     // Tab 切換
     // ============================================================
 
-    /**
-     * 切換 Tab 顯示
-     * @param {string} tabName - tab 名稱（booking / list / stats）
-     */
     function switchTab(tabName) {
-      // 切換按鈕樣式
       document.querySelectorAll('.tab-btn').forEach(btn => {
         if (btn.dataset.tab === tabName) {
           btn.classList.add('active');
@@ -446,30 +767,37 @@
         }
       });
 
-      // 切換內容顯示
-      ['booking', 'list', 'stats'].forEach(name => {
+      ['booking', 'list', 'stats', 'qa'].forEach(name => {
         const el = document.getElementById('tab-' + name);
-        if (el) {
-          el.classList.toggle('hidden', name !== tabName);
-        }
+        if (el) el.classList.toggle('hidden', name !== tabName);
       });
 
-      // 切換到統計 Tab 時渲染圖表
+      // 切換到統計 Tab 時載入導覽資料 + 渲染圖表
       if (tabName === 'stats') {
-        renderBookingStats();
+        if (!tourStatsLoaded) {
+          loadTourData().then(() => {
+            renderTourStats();
+            renderBookingStats();
+            tourStatsLoaded = true;
+          });
+        } else {
+          renderTourStats();
+          renderBookingStats();
+        }
       }
 
-      // 切換到清單 Tab 時重新整理 icons
+      // 切換到 QA Tab 時載入 QA 資料
+      if (tabName === 'qa' && qaData.length === 0) {
+        loadInternalQA();
+      }
+
       lucide.createIcons();
     }
 
     // ============================================================
-    // 使用者資訊顯示
+    // 使用者資訊
     // ============================================================
 
-    /**
-     * 更新 Header 使用者名稱
-     */
     function updateUserInfo() {
       const user = Auth.getUser();
       if (user) {
@@ -481,21 +809,13 @@
     // 預約表單送出
     // ============================================================
 
-    /**
-     * 處理預約表單送出
-     * @param {Event} e - 表單送出事件
-     */
     async function handleBookingSubmit(e) {
       e.preventDefault();
-
       const errorEl = document.getElementById('booking-error');
       const submitBtn = document.getElementById('booking-submit-btn');
       const submitText = document.getElementById('booking-submit-text');
-
-      // 隱藏先前的錯誤
       errorEl.classList.add('hidden');
 
-      // 收集欄位
       const data = {
         date: document.getElementById('booking-date').value,
         period: document.getElementById('booking-period').value,
@@ -507,22 +827,18 @@
         note: document.getElementById('booking-note').value.trim(),
       };
 
-      // 前端驗證必填欄位
       if (!data.date || !data.period || !data.company || !data.contact || !data.phone || data.people < 1) {
         errorEl.textContent = '請填寫所有必填欄位';
         errorEl.classList.remove('hidden');
         return;
       }
 
-      // 禁用按鈕 + 顯示載入狀態
       submitBtn.disabled = true;
       submitText.textContent = '送出中...';
 
       try {
         const result = await Auth.apiCall('booking', data);
-
         if (result.success) {
-          // 成功 → 替換表單內容為成功訊息
           document.getElementById('booking-form-container').innerHTML = `
             <div class="text-center py-8">
               <div class="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -542,11 +858,8 @@
             </div>
           `;
           lucide.createIcons();
-
-          // 刷新預約清單
           loadBookings();
         } else {
-          // 失敗 → 顯示錯誤
           errorEl.textContent = result.error || '送出失敗，請稍後再試';
           errorEl.classList.remove('hidden');
         }
@@ -559,23 +872,15 @@
       }
     }
 
-    /**
-     * 重置預約表單（成功後繼續新增）
-     */
     function resetBookingForm() {
       document.getElementById('booking-form-container').innerHTML = buildBookingFormHTML();
-      // 重新設定日期最小值
       document.getElementById('booking-date').min = new Date().toISOString().split('T')[0];
       lucide.createIcons();
     }
 
-    /**
-     * 產生預約表單 HTML
-     */
     function buildBookingFormHTML() {
       return `
         <form id="booking-form" onsubmit="handleBookingSubmit(event)" class="space-y-4">
-          <!-- 參訪日期 + 時段 -->
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label for="booking-date" class="block text-xs font-semibold text-slate-600 mb-1">參訪日期 <span class="text-red-500">*</span></label>
@@ -592,15 +897,11 @@
               </select>
             </div>
           </div>
-
-          <!-- 公司名稱 -->
           <div>
             <label for="booking-company" class="block text-xs font-semibold text-slate-600 mb-1">公司名稱 <span class="text-red-500">*</span></label>
             <input type="text" id="booking-company" required placeholder="請輸入公司名稱"
               class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors text-slate-800 placeholder:text-slate-400">
           </div>
-
-          <!-- 聯絡人 + 電話 -->
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label for="booking-contact" class="block text-xs font-semibold text-slate-600 mb-1">聯絡人 <span class="text-red-500">*</span></label>
@@ -613,8 +914,6 @@
                 class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors text-slate-800 placeholder:text-slate-400">
             </div>
           </div>
-
-          <!-- Email + 預估人數 -->
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label for="booking-email" class="block text-xs font-semibold text-slate-600 mb-1">Email</label>
@@ -627,18 +926,12 @@
                 class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors text-slate-800 placeholder:text-slate-400">
             </div>
           </div>
-
-          <!-- 備註 -->
           <div>
             <label for="booking-note" class="block text-xs font-semibold text-slate-600 mb-1">備註</label>
             <textarea id="booking-note" rows="3" placeholder="選填，如特殊需求或注意事項"
               class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors text-slate-800 placeholder:text-slate-400 resize-vertical"></textarea>
           </div>
-
-          <!-- 錯誤訊息 -->
           <div id="booking-error" class="hidden text-red-600 text-xs bg-red-50 px-3 py-2 rounded-lg border border-red-200"></div>
-
-          <!-- 送出按鈕 -->
           <button type="submit" id="booking-submit-btn"
             class="cursor-pointer w-full bg-primary hover:bg-primary/90 text-white font-semibold py-3 rounded-lg transition-all duration-200 hover:shadow-lg min-h-[44px] flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed text-sm">
             <i data-lucide="send" class="w-4 h-4"></i>
@@ -652,24 +945,18 @@
     // 載入預約清單
     // ============================================================
 
-    /**
-     * 從後端載入預約清單
-     */
     async function loadBookings() {
       const loadingEl = document.getElementById('booking-list-loading');
       const emptyEl = document.getElementById('booking-list-empty');
       const tbody = document.getElementById('booking-list-body');
-
-      // 顯示載入中
       loadingEl.classList.remove('hidden');
       emptyEl.classList.add('hidden');
       tbody.innerHTML = '';
 
       try {
         const result = await Auth.apiCall('listBookings');
-
-        if (result.success && Array.isArray(result.data)) {
-          bookingsData = result.data;
+        if (result.success && Array.isArray(result.bookings)) {
+          bookingsData = result.bookings;
           filteredBookings = [...bookingsData];
           renderBookingList();
         } else {
@@ -687,14 +974,10 @@
       }
     }
 
-    /**
-     * 渲染預約清單表格
-     */
     function renderBookingList() {
       const loadingEl = document.getElementById('booking-list-loading');
       const emptyEl = document.getElementById('booking-list-empty');
       const tbody = document.getElementById('booking-list-body');
-
       loadingEl.classList.add('hidden');
 
       if (filteredBookings.length === 0) {
@@ -706,102 +989,338 @@
       emptyEl.classList.add('hidden');
       tbody.innerHTML = filteredBookings.map(b => `
         <tr class="data-row border-b border-slate-100 transition-colors">
-          <td class="px-5 py-3 text-sm text-text-primary whitespace-nowrap">${escapeHTML(b.date)}</td>
-          <td class="px-5 py-3 text-sm text-text-secondary whitespace-nowrap">${escapeHTML(b.period)}</td>
-          <td class="px-5 py-3 text-sm text-text-primary font-medium">${escapeHTML(b.company)}</td>
-          <td class="px-5 py-3 text-sm text-text-secondary">${escapeHTML(b.contact)}</td>
-          <td class="px-5 py-3 text-sm text-text-secondary whitespace-nowrap">${escapeHTML(b.phone)}</td>
+          <td class="px-5 py-3 text-sm text-text-primary whitespace-nowrap">${escapeHTML(b.visitDate || b.date || '')}</td>
+          <td class="px-5 py-3 text-sm text-text-secondary whitespace-nowrap">${escapeHTML(b.period || '')}</td>
+          <td class="px-5 py-3 text-sm text-text-primary font-medium">${escapeHTML(b.company || '')}</td>
+          <td class="px-5 py-3 text-sm text-text-secondary">${escapeHTML(b.contact || '')}</td>
+          <td class="px-5 py-3 text-sm text-text-secondary whitespace-nowrap">${escapeHTML(b.phone || '')}</td>
           <td class="px-5 py-3 text-sm text-text-primary text-right font-mono">${b.people || 0}</td>
           <td class="px-5 py-3 text-sm text-text-secondary">${escapeHTML(b.bookedBy || '')}</td>
         </tr>
       `).join('');
     }
 
-    /**
-     * 即時篩選預約清單
-     */
     function filterBookings() {
       const keyword = document.getElementById('booking-search').value.trim().toLowerCase();
-
       if (!keyword) {
         filteredBookings = [...bookingsData];
       } else {
         filteredBookings = bookingsData.filter(b => {
-          const searchStr = [b.date, b.period, b.company, b.contact, b.phone, b.bookedBy || ''].join(' ').toLowerCase();
+          const searchStr = [b.visitDate || b.date, b.period, b.company, b.contact, b.phone, b.bookedBy || ''].join(' ').toLowerCase();
           return searchStr.includes(keyword);
         });
       }
-
       renderBookingList();
     }
 
     // ============================================================
-    // 內部統計
+    // 導覽記錄資料載入
     // ============================================================
 
+    async function loadTourData() {
+      try {
+        let rows;
+        try {
+          const table = await loadSheetData(CONFIG.TOUR_SHEET_GID);
+          rows = tableToRows(table);
+        } catch (e) {
+          console.warn('JSONP 讀取失敗，切換 CSV 備援:', e.message);
+          rows = await loadSheetCSV(CONFIG.TOUR_SHEET_GID);
+        }
+
+        if (rows.length < 2) {
+          tourData = [];
+          return;
+        }
+
+        // 欄位對應：A空白(0) B場次(1) C日期(2) D名稱(3) E單位(4) F報名人數(5) G實際人數(6) H國家(7)
+        tourData = rows.slice(1).map((row, i) => ({
+          session: row[1]?.trim() || String(i + 1),
+          date: row[2]?.trim() || '',
+          name: row[3]?.trim() || '',
+          unit: row[4]?.trim() || '',
+          registered: parseInt(row[5]?.trim()) || 0,
+          people: parseInt(row[6]?.trim()) || 0,
+          country: row[7]?.trim() || '',
+        })).filter(r => r.date || r.name || r.unit);
+      } catch (err) {
+        console.error('載入導覽記錄失敗:', err);
+        tourData = [];
+      }
+    }
+
+    // ============================================================
+    // 導覽統計渲染
+    // ============================================================
+
+    function renderTourStats() {
+      // KPI
+      const totalSessions = tourData.length;
+      const totalPeople = tourData.reduce((sum, r) => sum + r.people, 0);
+      const avg = totalSessions > 0 ? (totalPeople / totalSessions).toFixed(1) : '0';
+
+      const now = new Date();
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
+      const monthSessions = tourData.filter(r => {
+        const d = parseDate(r.date);
+        return d && d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+      }).length;
+
+      document.getElementById('kpi-tour-sessions').textContent = totalSessions.toLocaleString();
+      document.getElementById('kpi-tour-people').textContent = totalPeople.toLocaleString();
+      document.getElementById('kpi-tour-avg').textContent = avg;
+      document.getElementById('kpi-tour-month').textContent = monthSessions.toLocaleString();
+
+      // 圖表
+      renderTourMonthlyChart();
+      renderTourUnitChart();
+      renderTourCountryChart();
+    }
+
+    function renderTourMonthlyChart() {
+      const ctx = document.getElementById('chartTourMonthly');
+      if (!ctx) return;
+      if (tourMonthlyChart) { tourMonthlyChart.destroy(); tourMonthlyChart = null; }
+
+      const monthMap = {};
+      tourData.forEach(r => {
+        const d = parseDate(r.date);
+        if (!d) return;
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        if (!monthMap[key]) monthMap[key] = { sessions: 0, people: 0 };
+        monthMap[key].sessions++;
+        monthMap[key].people += r.people;
+      });
+
+      const sortedKeys = Object.keys(monthMap).sort();
+      const labels = sortedKeys.map(k => {
+        const [y, m] = k.split('-');
+        return `${y}/${parseInt(m)}月`;
+      });
+
+      tourMonthlyChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: '人數',
+              data: sortedKeys.map(k => monthMap[k].people),
+              borderColor: '#1E40AF',
+              backgroundColor: 'rgba(30, 64, 175, 0.08)',
+              fill: true,
+              tension: 0.3,
+              pointBackgroundColor: '#1E40AF',
+              pointRadius: 4,
+              pointHoverRadius: 6,
+            },
+            {
+              label: '場次',
+              data: sortedKeys.map(k => monthMap[k].sessions),
+              borderColor: '#F59E0B',
+              backgroundColor: 'transparent',
+              borderDash: [5, 5],
+              tension: 0.3,
+              pointBackgroundColor: '#F59E0B',
+              pointRadius: 4,
+              pointHoverRadius: 6,
+              yAxisID: 'y1',
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { position: 'top', labels: { usePointStyle: true, padding: 16, font: { size: 12 } } },
+            tooltip: {
+              backgroundColor: '#1E3A8A',
+              titleFont: { size: 13 },
+              bodyFont: { size: 12 },
+              padding: 12,
+              cornerRadius: 8,
+            }
+          },
+          scales: {
+            y: {
+              title: { display: true, text: '人數', font: { size: 11 } },
+              ticks: { font: { size: 11 } },
+              grid: { color: 'rgba(0,0,0,0.04)' },
+            },
+            y1: {
+              position: 'right',
+              title: { display: true, text: '場次', font: { size: 11 } },
+              ticks: { font: { size: 11 }, stepSize: 1 },
+              grid: { display: false },
+            },
+            x: {
+              ticks: { font: { size: 11 } },
+              grid: { display: false },
+            }
+          }
+        }
+      });
+    }
+
+    function renderTourUnitChart() {
+      const ctx = document.getElementById('chartTourUnit');
+      if (!ctx) return;
+      if (tourUnitChart) { tourUnitChart.destroy(); tourUnitChart = null; }
+
+      const unitMap = {};
+      tourData.forEach(r => {
+        if (!r.unit) return;
+        unitMap[r.unit] = (unitMap[r.unit] || 0) + r.people;
+      });
+
+      const sorted = Object.entries(unitMap).sort((a, b) => b[1] - a[1]).slice(0, 10);
+      const colors = [
+        '#1E40AF', '#3B82F6', '#60A5FA', '#93C5FD', '#BFDBFE',
+        '#F59E0B', '#FBBF24', '#FCD34D', '#FDE68A', '#FEF3C7'
+      ];
+
+      tourUnitChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: sorted.map(([unit]) => unit.length > 8 ? unit.slice(0, 8) + '...' : unit),
+          datasets: [{
+            label: '總人數',
+            data: sorted.map(([, count]) => count),
+            backgroundColor: colors.slice(0, sorted.length),
+            borderRadius: 6,
+            borderSkipped: false,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          indexAxis: 'y',
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#1E3A8A',
+              callbacks: {
+                title: (items) => sorted[items[0].dataIndex][0],
+                label: (item) => ` ${item.raw.toLocaleString()} 人次`
+              }
+            }
+          },
+          scales: {
+            x: { ticks: { font: { size: 11 } }, grid: { color: 'rgba(0,0,0,0.04)' } },
+            y: { ticks: { font: { size: 11 } }, grid: { display: false } }
+          }
+        }
+      });
+    }
+
+    function renderTourCountryChart() {
+      const ctx = document.getElementById('chartTourCountry');
+      if (!ctx) return;
+      if (tourCountryChart) { tourCountryChart.destroy(); tourCountryChart = null; }
+
+      const countryMap = {};
+      tourData.forEach(r => {
+        const country = r.country || '未標示';
+        countryMap[country] = (countryMap[country] || 0) + r.people;
+      });
+
+      const sorted = Object.entries(countryMap).sort((a, b) => b[1] - a[1]);
+      const colors = ['#1E40AF', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EF4444', '#EC4899', '#14B8A6', '#6366F1', '#F97316'];
+
+      tourCountryChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: sorted.map(([c]) => c),
+          datasets: [{
+            data: sorted.map(([, v]) => v),
+            backgroundColor: colors.slice(0, sorted.length),
+            borderWidth: 2,
+            borderColor: '#ffffff',
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'right',
+              labels: { padding: 12, font: { size: 12, family: "'Noto Sans TC', sans-serif" } }
+            },
+            tooltip: {
+              callbacks: {
+                label: (item) => ` ${item.label}：${item.raw.toLocaleString()} 人次`
+              }
+            }
+          }
+        }
+      });
+    }
+
     /**
-     * 渲染預約統計 KPI 與圖表
+     * 重新整理導覽統計
      */
+    async function refreshTourStats() {
+      const icon = document.getElementById('stats-refresh-icon');
+      if (icon) icon.style.animation = 'spin 1s linear infinite';
+      tourStatsLoaded = false;
+      await loadTourData();
+      renderTourStats();
+      tourStatsLoaded = true;
+      if (icon) icon.style.animation = '';
+    }
+
+    // ============================================================
+    // 預約統計
+    // ============================================================
+
     function renderBookingStats() {
-      // 計算 KPI
       const totalBookings = bookingsData.length;
       const totalPeople = bookingsData.reduce((sum, b) => sum + (b.people || 0), 0);
 
-      // 計算本月預約數
       const now = new Date();
       const currentMonth = now.getMonth();
       const currentYear = now.getFullYear();
       const monthBookings = bookingsData.filter(b => {
-        if (!b.date) return false;
-        const d = new Date(b.date);
+        const dateStr = b.visitDate || b.date || '';
+        if (!dateStr) return false;
+        const d = new Date(dateStr);
         return !isNaN(d.getTime()) && d.getMonth() === currentMonth && d.getFullYear() === currentYear;
       }).length;
 
-      // 更新 KPI 卡片
       document.getElementById('kpi-month-bookings').textContent = monthBookings.toLocaleString();
       document.getElementById('kpi-total-bookings').textContent = totalBookings.toLocaleString();
       document.getElementById('kpi-total-people').textContent = totalPeople.toLocaleString();
 
-      // 渲染圖表
       renderTrendChart();
       renderPeriodChart();
     }
 
-    /**
-     * 渲染預約趨勢折線圖
-     */
     function renderTrendChart() {
       const ctx = document.getElementById('chartBookingTrend');
       if (!ctx) return;
+      if (trendChart) { trendChart.destroy(); trendChart = null; }
 
-      // 銷毀既有圖表
-      if (trendChart) {
-        trendChart.destroy();
-        trendChart = null;
-      }
-
-      // 依月份統計預約數
       const monthMap = {};
       bookingsData.forEach(b => {
-        if (!b.date) return;
-        const d = new Date(b.date);
+        const dateStr = b.visitDate || b.date || '';
+        if (!dateStr) return;
+        const d = new Date(dateStr);
         if (isNaN(d.getTime())) return;
         const key = d.getFullYear() + '/' + String(d.getMonth() + 1).padStart(2, '0');
         monthMap[key] = (monthMap[key] || 0) + 1;
       });
 
-      // 排序月份
       const sortedMonths = Object.keys(monthMap).sort();
-      const labels = sortedMonths;
-      const data = sortedMonths.map(m => monthMap[m]);
 
       trendChart = new Chart(ctx, {
         type: 'line',
         data: {
-          labels,
+          labels: sortedMonths,
           datasets: [{
             label: '預約數',
-            data,
+            data: sortedMonths.map(m => monthMap[m]),
             borderColor: '#1E40AF',
             backgroundColor: 'rgba(30, 64, 175, 0.1)',
             borderWidth: 2,
@@ -814,41 +1333,20 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false },
-          },
+          plugins: { legend: { display: false } },
           scales: {
-            x: {
-              grid: { display: false },
-              ticks: { font: { size: 11, family: "'Noto Sans TC', sans-serif" } },
-            },
-            y: {
-              beginAtZero: true,
-              ticks: {
-                stepSize: 1,
-                font: { size: 11, family: "'Fira Code', monospace" },
-              },
-              grid: { color: 'rgba(0,0,0,0.05)' },
-            }
+            x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+            y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 } }, grid: { color: 'rgba(0,0,0,0.05)' } }
           }
         }
       });
     }
 
-    /**
-     * 渲染時段分佈圓餅圖
-     */
     function renderPeriodChart() {
       const ctx = document.getElementById('chartPeriodDist');
       if (!ctx) return;
+      if (periodChart) { periodChart.destroy(); periodChart = null; }
 
-      // 銷毀既有圖表
-      if (periodChart) {
-        periodChart.destroy();
-        periodChart = null;
-      }
-
-      // 依時段統計
       const periodMap = {};
       bookingsData.forEach(b => {
         const period = b.period || '未指定';
@@ -856,7 +1354,6 @@
       });
 
       const labels = Object.keys(periodMap);
-      const data = Object.values(periodMap);
       const colors = ['#1E40AF', '#F59E0B', '#10B981', '#8B5CF6', '#EF4444'];
 
       periodChart = new Chart(ctx, {
@@ -864,7 +1361,7 @@
         data: {
           labels,
           datasets: [{
-            data,
+            data: Object.values(periodMap),
             backgroundColor: colors.slice(0, labels.length),
             borderWidth: 2,
             borderColor: '#ffffff',
@@ -876,10 +1373,7 @@
           plugins: {
             legend: {
               position: 'bottom',
-              labels: {
-                padding: 16,
-                font: { size: 12, family: "'Noto Sans TC', sans-serif" },
-              }
+              labels: { padding: 16, font: { size: 12, family: "'Noto Sans TC', sans-serif" } }
             }
           }
         }
@@ -887,22 +1381,154 @@
     }
 
     // ============================================================
+    // 內部 QA
+    // ============================================================
+
+    async function loadInternalQA() {
+      const listEl = document.getElementById('qa-list');
+      const emptyEl = document.getElementById('qa-empty');
+
+      if (!CONFIG.QA_SHEET_GID) {
+        listEl.innerHTML = '';
+        emptyEl.classList.remove('hidden');
+        qaData = [];
+        filteredQAData = [];
+        return;
+      }
+
+      // 顯示載入中骨架
+      listEl.innerHTML = `
+        <div class="skeleton h-16 w-full"></div>
+        <div class="skeleton h-16 w-full"></div>
+        <div class="skeleton h-16 w-full"></div>
+      `;
+      emptyEl.classList.add('hidden');
+
+      try {
+        let rows;
+        try {
+          const table = await loadSheetData(CONFIG.QA_SHEET_GID);
+          rows = tableToRows(table);
+        } catch (e) {
+          console.warn('QA JSONP 讀取失敗，切換 CSV 備援:', e.message);
+          rows = await loadSheetCSV(CONFIG.QA_SHEET_GID);
+        }
+
+        if (rows.length < 2) {
+          qaData = [];
+          filteredQAData = [];
+          listEl.innerHTML = '';
+          emptyEl.classList.remove('hidden');
+          return;
+        }
+
+        qaData = rows.slice(1).map((row, i) => ({
+          id: row[0]?.trim() || String(i + 1),
+          question: row[1]?.trim() || '',
+          answer: row[2]?.trim() || '',
+          category: row[3]?.trim() || '未分類',
+        })).filter(r => r.question);
+
+        filteredQAData = [...qaData];
+        renderInternalQAFilters();
+        renderInternalQAList();
+      } catch (err) {
+        console.error('載入 QA 資料失敗:', err);
+        qaData = [];
+        filteredQAData = [];
+        listEl.innerHTML = '';
+        emptyEl.classList.remove('hidden');
+      }
+    }
+
+    function renderInternalQAFilters() {
+      const categories = [...new Set(qaData.map(r => r.category))];
+      const container = document.getElementById('qa-category-filters');
+      container.innerHTML = `
+        <button class="qa-filter-btn active px-4 py-1.5 text-xs rounded-full border border-primary bg-primary/5 text-primary font-semibold cursor-pointer transition-colors" onclick="filterInternalQA('all')">全部</button>
+      ` + categories.map(cat =>
+        `<button class="qa-filter-btn px-4 py-1.5 text-xs rounded-full border border-slate-200 bg-white cursor-pointer transition-colors" onclick="filterInternalQA('${escapeHTML(cat)}')">${escapeHTML(cat)}</button>`
+      ).join('');
+    }
+
+    function renderInternalQAList() {
+      const container = document.getElementById('qa-list');
+      const emptyEl = document.getElementById('qa-empty');
+
+      if (filteredQAData.length === 0) {
+        container.innerHTML = '';
+        emptyEl.classList.remove('hidden');
+        return;
+      }
+
+      emptyEl.classList.add('hidden');
+      container.innerHTML = filteredQAData.map((item, i) => `
+        <div class="bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
+          <button
+            class="w-full px-5 py-4 flex items-center justify-between text-left cursor-pointer hover:bg-slate-100 transition-colors"
+            onclick="toggleQAAccordion(${i})"
+          >
+            <div class="flex items-center gap-3">
+              <span class="flex-shrink-0 w-7 h-7 bg-blue-50 rounded-full flex items-center justify-center text-xs font-bold text-primary font-mono">${escapeHTML(item.id)}</span>
+              <span class="text-sm font-medium text-text-primary">${escapeHTML(item.question)}</span>
+            </div>
+            <div class="flex items-center gap-2 flex-shrink-0 ml-3">
+              <span class="text-xs px-2 py-0.5 rounded-full bg-slate-200 text-text-secondary">${escapeHTML(item.category)}</span>
+              <i data-lucide="chevron-down" class="w-4 h-4 text-text-secondary transition-transform qa-icon-${i}"></i>
+            </div>
+          </button>
+          <div class="accordion-content px-5 border-t border-slate-200" id="qa-accordion-${i}">
+            <p class="text-sm text-text-secondary leading-relaxed pl-10">${escapeHTML(item.answer)}</p>
+          </div>
+        </div>
+      `).join('');
+
+      lucide.createIcons();
+    }
+
+    function toggleQAAccordion(index) {
+      const el = document.getElementById(`qa-accordion-${index}`);
+      const icon = document.querySelector(`.qa-icon-${index}`);
+      el.classList.toggle('open');
+      if (icon) {
+        icon.style.transform = el.classList.contains('open') ? 'rotate(180deg)' : '';
+      }
+    }
+
+    function filterInternalQA(category) {
+      activeQAFilter = category;
+      document.querySelectorAll('.qa-filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if ((category === 'all' && btn.textContent.trim() === '全部') || btn.textContent.trim() === category) {
+          btn.classList.add('active');
+        }
+      });
+      applyInternalQAFilters();
+    }
+
+    function filterInternalQABySearch() {
+      applyInternalQAFilters();
+    }
+
+    function applyInternalQAFilters() {
+      const q = document.getElementById('qa-search-input').value.trim().toLowerCase();
+      filteredQAData = qaData.filter(r => {
+        const matchCat = activeQAFilter === 'all' || r.category === activeQAFilter;
+        const matchSearch = !q || r.question.toLowerCase().includes(q) || r.answer.toLowerCase().includes(q);
+        return matchCat && matchSearch;
+      });
+      renderInternalQAList();
+    }
+
+    // ============================================================
     // 初始化
     // ============================================================
     document.addEventListener('DOMContentLoaded', () => {
-      // 設定年份
       document.getElementById('footerYear').textContent = new Date().getFullYear();
-
-      // 初始化 Lucide Icons
       lucide.createIcons();
-
-      // 顯示使用者資訊
       updateUserInfo();
-
-      // 載入預約清單
       loadBookings();
 
-      // 設定日期輸入最小值為今天
       const dateInput = document.getElementById('booking-date');
       if (dateInput) {
         dateInput.min = new Date().toISOString().split('T')[0];
