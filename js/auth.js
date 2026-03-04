@@ -1,16 +1,14 @@
 /**
  * 前端認證模組
- * 搭配 Google Apps Script 做登入驗證
+ * 登入驗證：透過 Google Apps Script（帳號存在 Google Sheet「帳號」工作表）
+ * 預約/諮詢 API：透過 Google Apps Script
  */
 const Auth = {
-  // Google Apps Script Web App URL（部署後請更新）
+  // Google Apps Script Web App URL
   GAS_URL: 'https://script.google.com/macros/s/AKfycbxJnBjVuPweU9SsqwxNF8YuPAyQJNtkp3M0G_6udXijr9vUkUAR2adYQkr3mR54EalwSw/exec',
 
   /**
-   * 登入
-   * @param {string} username - 帳號
-   * @param {string} password - 密碼
-   * @returns {Promise<{success: boolean, error?: string, user?: object}>}
+   * 登入（透過 GAS 比對 Google Sheet 帳號）
    */
   async login(username, password) {
     try {
@@ -22,7 +20,6 @@ const Auth = {
       const result = await resp.json();
 
       if (result.success) {
-        // 儲存到 localStorage
         const today = new Date();
         today.setHours(23, 59, 59, 999);
 
@@ -48,7 +45,7 @@ const Auth = {
   },
 
   /**
-   * 是否已登入（檢查 token 是否存在且未過期）
+   * 是否已登入
    */
   isLoggedIn() {
     const token = localStorage.getItem('auth_token');
@@ -58,7 +55,7 @@ const Auth = {
   },
 
   /**
-   * 取得使用者資訊
+   * 取得目前使用者資訊
    */
   getUser() {
     try {
@@ -76,7 +73,7 @@ const Auth = {
   },
 
   /**
-   * 認證守衛：未登入自動跳轉首頁
+   * 認證守衛：未登入跳轉首頁
    */
   guard() {
     if (!this.isLoggedIn()) {
@@ -87,9 +84,7 @@ const Auth = {
   },
 
   /**
-   * 送出需認證的 API 請求
-   * @param {string} action - API 動作
-   * @param {object} data - 額外資料
+   * 送出需認證的 API 請求到 Google Apps Script
    */
   async apiCall(action, data = {}) {
     try {
