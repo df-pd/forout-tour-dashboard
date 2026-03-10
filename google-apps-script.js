@@ -49,6 +49,12 @@
  */
 
 // ============================================================
+// Google 日曆設定
+// ============================================================
+
+const CALENDAR_ID = '1ed9d1eb22c38ff479bed67eec478366a350ae750f6ce63a3ae937601d904aea@group.calendar.google.com';
+
+// ============================================================
 // 工具函式
 // ============================================================
 
@@ -120,6 +126,58 @@ function verifyToken(token) {
     }
   }
   return null;
+}
+
+// ============================================================
+// Google 日曆：建立參訪事件
+// ============================================================
+
+/**
+ * 預約成功後，自動在 Google 日曆建立事件
+ * @param {Object} data - 預約資料
+ * @param {string} bookedBy - 預約人（內部帳號名稱或「客戶自行預約」）
+ */
+function createCalendarEvent(data, bookedBy) {
+  try {
+    var cal = CalendarApp.getCalendarById(CALENDAR_ID);
+    if (!cal) return; // 日曆不存在就跳過
+
+    // 解析日期與時段
+    var dateStr = String(data.visitDate); // 格式：yyyy-MM-dd
+    var period = String(data.period || '');
+
+    // 根據時段決定起訖時間
+    var startHour = 9, endHour = 12;
+    if (period.indexOf('下午') !== -1 || period.indexOf('13:00') !== -1 || period.indexOf('Afternoon') !== -1 || period.indexOf('午後') !== -1 || period.indexOf('오후') !== -1) {
+      startHour = 13;
+      endHour = 17;
+    }
+
+    var parts = dateStr.split('-');
+    var startTime = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]), startHour, 0, 0);
+    var endTime = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]), endHour, 0, 0);
+
+    // 事件標題
+    var title = '【導覽】' + (data.company || '未填公司') + '（' + (parseInt(data.people) || 0) + '人）';
+
+    // 事件描述
+    var desc = '公司/機構：' + (data.company || '') + '\n'
+      + '聯絡人：' + (data.contact || '') + '\n'
+      + '電話：' + (data.phone || '') + '\n'
+      + 'Email：' + (data.email || '') + '\n'
+      + '人數：' + (parseInt(data.people) || 0) + '\n'
+      + '備註：' + (data.note || '') + '\n'
+      + '預約人：' + bookedBy + '\n'
+      + '建立時間：' + twTimestamp();
+
+    cal.createEvent(title, startTime, endTime, {
+      description: desc,
+      location: '新北市資源教育基地'
+    });
+  } catch (e) {
+    // 日曆建立失敗不影響預約流程，僅記錄錯誤
+    Logger.log('日曆事件建立失敗：' + e.message);
+  }
 }
 
 // ============================================================
@@ -342,6 +400,9 @@ function handleBooking(data) {
     user.name,
     twTimestamp()
   ]);
+
+  // 同步建立 Google 日曆事件
+  createCalendarEvent(data, user.name);
 
   return jsonResponse({ success: true, message: '預約成功' });
 }
@@ -572,6 +633,9 @@ function handlePublicBooking(data) {
     '客戶自行預約 (' + code + ')',
     twTimestamp()
   ]);
+
+  // 同步建立 Google 日曆事件
+  createCalendarEvent(data, '客戶自行預約 (' + code + ')');
 
   // 將連結標記為已使用
   linkSheet.getRange(linkRowIndex, 2).setValue('used');
