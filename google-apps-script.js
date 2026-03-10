@@ -52,7 +52,11 @@
 // Google 日曆設定
 // ============================================================
 
+// 自有日曆（可讀寫，預約會寫入此日曆）
 const CALENDAR_ID = '1ed9d1eb22c38ff479bed67eec478366a350ae750f6ce63a3ae937601d904aea@group.calendar.google.com';
+
+// 官方日曆（唯讀，僅讀取事件顯示在系統日曆）
+const OFFICIAL_CALENDAR_ID = '71dc281c478614bd6b32fa271fb5427666009350524d8d7aeb2a3dcd00511094@group.calendar.google.com';
 
 // ============================================================
 // 工具函式
@@ -224,6 +228,8 @@ function doPost(e) {
         return handleValidateLink(data);
       case 'publicBooking':
         return handlePublicBooking(data);
+      case 'listCalendarEvents':
+        return handleListCalendarEvents(data);
       case 'listLinks':
         return handleListLinks(data);
       case 'updateCredentials':
@@ -444,6 +450,70 @@ function handleListBookings(data) {
   }
 
   return jsonResponse({ success: true, bookings: bookings });
+}
+
+// ============================================================
+// 功能：取得日曆事件（自有 + 官方）
+// ============================================================
+
+function handleListCalendarEvents(data) {
+  var user = verifyToken(data.token);
+  if (!user) {
+    return jsonResponse({ success: false, error: '請先登入' });
+  }
+
+  var year = parseInt(data.year) || new Date().getFullYear();
+  var month = parseInt(data.month); // 1-based
+  if (isNaN(month)) month = new Date().getMonth() + 1;
+
+  var startDate = new Date(year, month - 1, 1, 0, 0, 0);
+  var endDate = new Date(year, month, 0, 23, 59, 59); // 該月最後一天
+
+  var events = [];
+
+  // 讀取自有日曆事件
+  try {
+    var ownCal = CalendarApp.getCalendarById(CALENDAR_ID);
+    if (ownCal) {
+      var ownEvents = ownCal.getEvents(startDate, endDate);
+      ownEvents.forEach(function(ev) {
+        events.push({
+          title: ev.getTitle(),
+          description: ev.getDescription() || '',
+          location: ev.getLocation() || '',
+          start: Utilities.formatDate(ev.getStartTime(), 'Asia/Taipei', 'yyyy-MM-dd HH:mm'),
+          end: Utilities.formatDate(ev.getEndTime(), 'Asia/Taipei', 'yyyy-MM-dd HH:mm'),
+          date: Utilities.formatDate(ev.getStartTime(), 'Asia/Taipei', 'yyyy-MM-dd'),
+          source: 'own'
+        });
+      });
+    }
+  } catch (e) {
+    Logger.log('讀取自有日曆失敗：' + e.message);
+  }
+
+  // 讀取官方日曆事件
+  try {
+    var officialCal = CalendarApp.getCalendarById(OFFICIAL_CALENDAR_ID);
+    if (officialCal) {
+      var officialEvents = officialCal.getEvents(startDate, endDate);
+      officialEvents.forEach(function(ev) {
+        events.push({
+          title: ev.getTitle(),
+          description: ev.getDescription() || '',
+          location: ev.getLocation() || '',
+          start: Utilities.formatDate(ev.getStartTime(), 'Asia/Taipei', 'yyyy-MM-dd HH:mm'),
+          end: Utilities.formatDate(ev.getEndTime(), 'Asia/Taipei', 'yyyy-MM-dd HH:mm'),
+          date: Utilities.formatDate(ev.getStartTime(), 'Asia/Taipei', 'yyyy-MM-dd'),
+          source: 'official'
+        });
+      });
+    }
+  } catch (e) {
+    Logger.log('讀取官方日曆失敗：' + e.message);
+  }
+
+  return jsonResponse({ success: true, events: events });
 }
 
 // ============================================================
