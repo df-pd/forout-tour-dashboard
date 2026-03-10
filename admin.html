@@ -1425,7 +1425,7 @@
       errorEl.classList.add('hidden');
 
       const data = {
-        date: document.getElementById('booking-date').value,
+        visitDate: document.getElementById('booking-date').value,
         period: document.getElementById('booking-period').value,
         company: document.getElementById('booking-company').value.trim(),
         contact: document.getElementById('booking-contact').value.trim(),
@@ -1435,7 +1435,7 @@
         note: document.getElementById('booking-note').value.trim(),
       };
 
-      if (!data.date || !data.period || !data.company || !data.contact || !data.phone || data.people < 1) {
+      if (!data.visitDate || !data.period || !data.company || !data.contact || !data.phone || data.people < 1) {
         errorEl.textContent = '請填寫所有必填欄位';
         errorEl.classList.remove('hidden');
         return;
@@ -1454,7 +1454,7 @@
               </div>
               <h3 class="text-lg font-bold text-text-primary mb-2">預約成功</h3>
               <p class="text-sm text-text-secondary mb-1">
-                ${escapeHTML(data.company)} — ${escapeHTML(data.date)} ${escapeHTML(data.period)}
+                ${escapeHTML(data.company)} — ${escapeHTML(data.visitDate)} ${escapeHTML(data.period)}
               </p>
               <p class="text-sm text-text-secondary mb-6">
                 聯絡人：${escapeHTML(data.contact)}，預估 ${data.people} 人

@@ -757,3 +757,30 @@ function handleListLinks(data) {
 
   return jsonResponse({ success: true, links: links });
 }
+
+// ============================================================
+// 測試：手動執行以觸發日曆授權
+// ============================================================
+
+/**
+ * 在 GAS 編輯器中手動執行此函式，會跳出授權對話框。
+ * 授權完成後，日曆功能才能正常運作。
+ * 只需執行一次。
+ */
+function testCalendarAccess() {
+  // 測試自有日曆
+  var ownCal = CalendarApp.getCalendarById(CALENDAR_ID);
+  if (ownCal) {
+    Logger.log('✅ 自有日曆連線成功：' + ownCal.getName());
+  } else {
+    Logger.log('❌ 自有日曆無法存取，請確認 ID 和權限');
+  }
+
+  // 測試官方日曆
+  var officialCal = CalendarApp.getCalendarById(OFFICIAL_CALENDAR_ID);
+  if (officialCal) {
+    Logger.log('✅ 官方日曆連線成功：' + officialCal.getName());
+  } else {
+    Logger.log('❌ 官方日曆無法存取，請確認 ID 和權限');
+  }
+}
