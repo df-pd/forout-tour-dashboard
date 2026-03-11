@@ -340,6 +340,37 @@
     <!-- ===== 導覽 QA Tab ===== -->
     <div id="tab-qa" class="hidden">
 
+      <!-- QA 統計摘要 -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
+        <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
+          <div class="flex items-center gap-2 mb-1">
+            <div class="w-7 h-7 bg-blue-50 rounded-lg flex items-center justify-center">
+              <i data-lucide="message-circle-question" class="w-3.5 h-3.5 text-primary"></i>
+            </div>
+            <span class="text-xs text-text-secondary">已回覆問答</span>
+          </div>
+          <div id="qa-kpi-total" class="text-2xl font-bold font-mono text-text-primary">-</div>
+        </div>
+        <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
+          <div class="flex items-center gap-2 mb-1">
+            <div class="w-7 h-7 bg-amber-50 rounded-lg flex items-center justify-center">
+              <i data-lucide="tags" class="w-3.5 h-3.5 text-accent"></i>
+            </div>
+            <span class="text-xs text-text-secondary">問題分類</span>
+          </div>
+          <div id="qa-kpi-categories" class="text-2xl font-bold font-mono text-text-primary">-</div>
+        </div>
+        <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm hidden sm:block">
+          <div class="flex items-center gap-2 mb-1">
+            <div class="w-7 h-7 bg-green-50 rounded-lg flex items-center justify-center">
+              <i data-lucide="building-2" class="w-3.5 h-3.5 text-green-600"></i>
+            </div>
+            <span class="text-xs text-text-secondary">提問單位</span>
+          </div>
+          <div id="qa-kpi-units" class="text-2xl font-bold font-mono text-text-primary">-</div>
+        </div>
+      </div>
+
       <!-- QA 分類篩選 -->
       <div class="flex flex-wrap gap-2 mb-4">
         <button class="filter-btn active px-4 py-1.5 text-sm rounded-full border border-slate-200 bg-white cursor-pointer" onclick="filterQA('all')">全部</button>
@@ -354,10 +385,15 @@
         <input
           type="text"
           id="qaSearchInput"
-          placeholder="搜尋問題或答案..."
+          placeholder="搜尋問題、答案或單位..."
           class="search-input pl-9 pr-4 py-2.5 text-sm border border-slate-200 rounded-lg w-full transition-all"
           oninput="filterQABySearch()"
         >
+      </div>
+
+      <!-- QA 筆數與排序 -->
+      <div class="flex items-center justify-between mb-3">
+        <span id="qa-result-count" class="text-xs text-text-secondary"></span>
       </div>
 
       <!-- QA 手風琴列表 -->
@@ -554,8 +590,8 @@
       // 導覽記錄工作表 gid
       TOUR_SHEET_GID: '693491083',
 
-      // 導覽 QA 工作表 gid（日後新增 QA 工作表後填入）
-      QA_SHEET_GID: '',
+      // 導覽 QA 工作表 gid
+      QA_SHEET_GID: '45268038',
 
       // 每頁顯示筆數
       PAGE_SIZE: 15,
@@ -753,12 +789,19 @@
           return;
         }
 
+        // 映射 Google Sheet 9 欄結構：
+        // 題號=0, 日期=1, 單位=2, 人數=3, 問題類別=4, 問題與建議=5, 參考題號=6, 回覆=7, 備註=8
         qaData = rows.slice(1).map((row, i) => ({
           id: row[0]?.trim() || String(i + 1),
-          question: row[1]?.trim() || '',
-          answer: row[2]?.trim() || '',
-          category: row[3]?.trim() || '未分類',
-        })).filter(r => r.question);
+          date: row[1]?.trim() || '',
+          unit: row[2]?.trim() || '',
+          people: row[3]?.trim() || '',
+          category: row[4]?.trim() || '未分類',
+          question: row[5]?.trim() || '',
+          refId: row[6]?.trim() || '',
+          answer: row[7]?.trim() || '',
+          note: row[8]?.trim() || '',
+        })).filter(r => r.question && r.answer);  // 只保留有問題且有回覆的
 
         filteredQAData = [...qaData];
       } catch (err) {
@@ -1101,16 +1144,40 @@
     // ============================================================
     // QA 渲染
     // ============================================================
-    function renderQA() {
-      const container = document.getElementById('qaList');
-      const emptyState = document.getElementById('qaEmpty');
 
-      // 分類按鈕
+    // 問題分類對應顏色
+    const categoryColors = {
+      '資收收運': { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
+      '營運管理': { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200' },
+      'AI智能手臂': { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200' },
+      '資收政策': { bg: 'bg-teal-50', text: 'text-teal-700', border: 'border-teal-200' },
+      '導覽過程': { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
+      '廠房設計': { bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-200' },
+      '細分選設備': { bg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-200' },
+    };
+    const defaultCatColor = { bg: 'bg-slate-50', text: 'text-slate-600', border: 'border-slate-200' };
+
+    function getCatColor(cat) {
+      return categoryColors[cat] || defaultCatColor;
+    }
+
+    function renderQA() {
+      // 更新 KPI
       const categories = [...new Set(qaData.map(r => r.category))];
+      const units = [...new Set(qaData.map(r => r.unit).filter(Boolean))];
+      document.getElementById('qa-kpi-total').textContent = qaData.length;
+      document.getElementById('qa-kpi-categories').textContent = categories.length;
+      document.getElementById('qa-kpi-units').textContent = units.length;
+
+      // 分類按鈕（含計數）
+      const catCounts = {};
+      qaData.forEach(r => { catCounts[r.category] = (catCounts[r.category] || 0) + 1; });
+
       const filterContainer = document.getElementById('qaCategoryFilters');
-      filterContainer.innerHTML = categories.map(cat =>
-        `<button class="filter-btn px-4 py-1.5 text-sm rounded-full border border-slate-200 bg-white cursor-pointer" onclick="filterQA('${escapeHTML(cat)}')">${escapeHTML(cat)}</button>`
-      ).join('');
+      filterContainer.innerHTML = categories.map(cat => {
+        const c = getCatColor(cat);
+        return `<button class="filter-btn px-3 py-1.5 text-sm rounded-full border ${c.border} ${c.bg} cursor-pointer" onclick="filterQA('${escapeHTML(cat)}')">${escapeHTML(cat)} <span class="text-xs opacity-60">${catCounts[cat]}</span></button>`;
+      }).join('');
 
       renderQAList();
     }
@@ -1118,36 +1185,54 @@
     function renderQAList() {
       const container = document.getElementById('qaList');
       const emptyState = document.getElementById('qaEmpty');
+      const countEl = document.getElementById('qa-result-count');
 
       if (filteredQAData.length === 0) {
         container.innerHTML = '';
         emptyState.classList.remove('hidden');
+        countEl.textContent = '';
         return;
       }
 
       emptyState.classList.add('hidden');
-      container.innerHTML = filteredQAData.map((item, i) => `
+      countEl.textContent = `顯示 ${filteredQAData.length} 筆`;
+
+      container.innerHTML = filteredQAData.map((item, i) => {
+        const c = getCatColor(item.category);
+        const metaParts = [];
+        if (item.unit) metaParts.push(`<span class="flex items-center gap-1"><i data-lucide="building-2" class="w-3 h-3"></i>${escapeHTML(item.unit)}</span>`);
+        if (item.date) metaParts.push(`<span class="flex items-center gap-1"><i data-lucide="calendar" class="w-3 h-3"></i>${escapeHTML(item.date)}</span>`);
+        const metaHTML = metaParts.length ? `<div class="flex flex-wrap items-center gap-3 text-xs text-text-secondary mt-2 pl-10">${metaParts.join('')}</div>` : '';
+
+        return `
         <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           <button
-            class="w-full px-5 py-4 flex items-center justify-between text-left cursor-pointer hover:bg-slate-50 transition-colors"
+            class="w-full px-5 py-4 flex items-start justify-between text-left cursor-pointer hover:bg-slate-50 transition-colors"
             onclick="toggleAccordion(${i})"
           >
-            <div class="flex items-center gap-3">
-              <span class="flex-shrink-0 w-7 h-7 bg-blue-50 rounded-full flex items-center justify-center text-xs font-bold text-primary font-mono">${escapeHTML(item.id)}</span>
-              <span class="text-sm font-medium text-text-primary">${escapeHTML(item.question)}</span>
+            <div class="flex items-start gap-3 min-w-0 flex-1">
+              <span class="flex-shrink-0 w-7 h-7 bg-blue-50 rounded-full flex items-center justify-center text-xs font-bold text-primary font-mono mt-0.5">${escapeHTML(item.id)}</span>
+              <span class="text-sm font-medium text-text-primary leading-relaxed">${escapeHTML(item.question)}</span>
             </div>
-            <div class="flex items-center gap-2 flex-shrink-0 ml-3">
-              <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-text-secondary">${escapeHTML(item.category)}</span>
+            <div class="flex items-center gap-2 flex-shrink-0 ml-3 mt-0.5">
+              <span class="text-xs px-2 py-0.5 rounded-full ${c.bg} ${c.text} border ${c.border} whitespace-nowrap">${escapeHTML(item.category)}</span>
               <i data-lucide="chevron-down" class="w-4 h-4 text-text-secondary transition-transform accordion-icon-${i}"></i>
             </div>
           </button>
-          <div class="accordion-content px-5 border-t border-slate-100" id="accordion-${i}">
-            <p class="text-sm text-text-secondary leading-relaxed pl-10">${escapeHTML(item.answer)}</p>
+          <div class="accordion-content border-t border-slate-100" id="accordion-${i}">
+            <div class="px-5">
+              <div class="pl-10">
+                <div class="flex items-start gap-2">
+                  <i data-lucide="message-circle" class="w-4 h-4 text-primary flex-shrink-0 mt-0.5"></i>
+                  <p class="text-sm text-text-secondary leading-relaxed">${escapeHTML(item.answer)}</p>
+                </div>
+              </div>
+              ${metaHTML}
+            </div>
           </div>
-        </div>
-      `).join('');
+        </div>`;
+      }).join('');
 
-      // 重新初始化 Lucide 圖示
       lucide.createIcons();
     }
 
@@ -1166,9 +1251,10 @@
       // 更新按鈕狀態
       document.querySelectorAll('.filter-btn').forEach(btn => {
         btn.classList.remove('active');
+        const btnText = btn.textContent.trim().replace(/\s+\d+$/, '');  // 移除計數
         if (
-          (category === 'all' && btn.textContent.trim() === '全部') ||
-          btn.textContent.trim() === category
+          (category === 'all' && btnText === '全部') ||
+          btnText === category
         ) {
           btn.classList.add('active');
         }
@@ -1188,7 +1274,8 @@
         const matchCat = activeQAFilter === 'all' || r.category === activeQAFilter;
         const matchSearch = !q ||
           r.question.toLowerCase().includes(q) ||
-          r.answer.toLowerCase().includes(q);
+          r.answer.toLowerCase().includes(q) ||
+          r.unit.toLowerCase().includes(q);
         return matchCat && matchSearch;
       });
 
