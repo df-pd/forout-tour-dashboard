@@ -137,45 +137,30 @@
     }
 
     /* 日曆格子 */
+    /* 日曆格子 — 每格顯示日期 + 上下午時段 */
     .cal-cell {
-      aspect-ratio: 1;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      justify-content: center;
       border-radius: 0.5rem;
-      cursor: default;
       transition: all 150ms ease;
       position: relative;
-      min-height: 48px;
+      min-height: 72px;
+      padding: 2px;
+      background-color: #F8FAFC;
     }
-    .cal-cell.available {
-      background-color: #F0FDF4;
+    .cal-cell.has-content {
       cursor: pointer;
     }
-    .cal-cell.available:hover {
-      background-color: #DCFCE7;
-      transform: scale(1.05);
-    }
-    .cal-cell.booked {
-      background-color: #EFF6FF;
-      cursor: pointer;
-    }
-    .cal-cell.booked:hover {
-      background-color: #DBEAFE;
-      transform: scale(1.05);
+    .cal-cell.has-content:hover {
+      transform: scale(1.03);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
     .cal-cell.closed {
-      background-color: #F8FAFC;
+      background-color: #F1F5F9;
       color: #CBD5E1;
     }
-    .cal-cell.official {
-      background-color: #FAF5FF;
-      cursor: pointer;
-    }
-    .cal-cell.official:hover {
-      background-color: #F3E8FF;
-      transform: scale(1.05);
+    .cal-cell.past {
+      opacity: 0.5;
     }
     .cal-cell.today {
       box-shadow: inset 0 0 0 2px #1E40AF;
@@ -183,16 +168,56 @@
     .cal-cell.selected {
       box-shadow: inset 0 0 0 2px #F59E0B;
     }
-    .cal-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      position: absolute;
-      bottom: 4px;
+    .cal-cell .cal-date {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-align: center;
+      line-height: 1;
+      padding: 2px 0 1px;
+    }
+    /* 時段小色塊 */
+    .cal-slot {
+      flex: 1;
+      border-radius: 0.25rem;
+      margin: 1px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.55rem;
+      line-height: 1.1;
+      font-weight: 500;
+      padding: 1px 2px;
+      text-align: center;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      transition: all 150ms ease;
+    }
+    .cal-slot.available {
+      background-color: #D1FAE5;
+      color: #065F46;
+      cursor: pointer;
+    }
+    .cal-slot.available:hover {
+      background-color: #A7F3D0;
+      box-shadow: 0 0 0 1px #10B981;
+    }
+    .cal-slot.booked {
+      background-color: #FEE2E2;
+      color: #991B1B;
+    }
+    .cal-slot.closed {
+      background-color: #F1F5F9;
+      color: #CBD5E1;
+    }
+    .cal-slot.past {
+      background-color: #F1F5F9;
+      color: #94A3B8;
     }
     @media (max-width: 640px) {
-      .cal-cell { min-height: 40px; font-size: 0.75rem; }
-      .cal-dot { width: 4px; height: 4px; bottom: 2px; }
+      .cal-cell { min-height: 56px; }
+      .cal-slot { font-size: 0.5rem; }
+      .cal-cell .cal-date { font-size: 0.6rem; }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -289,9 +314,9 @@
 
         <!-- 圖例 -->
         <div class="flex flex-wrap gap-3 mb-3 text-xs text-text-secondary">
-          <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-green-400 inline-block"></span> 可預約</span>
-          <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block"></span> 系統預約</span>
-          <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-purple-500 inline-block"></span> 官方行程</span>
+          <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-green-300 inline-block"></span> 可預約</span>
+          <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-red-200 inline-block"></span> 已預約</span>
+          <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-slate-200 inline-block"></span> 休息/過去</span>
         </div>
 
         <!-- 載入中提示 -->
@@ -313,12 +338,6 @@
 
         <!-- 日曆格子 -->
         <div id="calendar-grid" class="grid grid-cols-7 gap-1"></div>
-
-        <!-- 當日詳情（上下午時段） -->
-        <div id="calendar-detail" class="hidden mt-4 border-t border-slate-200 pt-3">
-          <h4 id="calendar-detail-title" class="text-xs font-bold text-text-primary mb-2"></h4>
-          <div id="calendar-detail-list" class="space-y-1.5"></div>
-        </div>
       </div>
 
       <!-- 右欄：預約表單 -->
@@ -835,7 +854,7 @@
     let calendarLoaded = false;
     let calendarYear = new Date().getFullYear();
     let calendarMonth = new Date().getMonth(); // 0-based
-    let selectedCalDate = null;
+    // 日曆狀態
     let calendarEvents = []; // Google 日曆事件（自有+官方）
 
     // ============================================================
@@ -981,7 +1000,7 @@
       calendarMonth += delta;
       if (calendarMonth > 11) { calendarMonth = 0; calendarYear++; }
       if (calendarMonth < 0) { calendarMonth = 11; calendarYear--; }
-      selectedCalDate = null;
+      // 切換月份後重新渲染
       await loadCalendarEvents();
       renderCalendar();
     }
@@ -1023,12 +1042,14 @@
     }
 
     /**
-     * 取得日曆事件（依日期分組）
+     * 取得日曆事件（依日期分組）— 只保留含「參訪」或「導覽」的活動
      */
     function getCalEventsByDate() {
       const map = {};
       calendarEvents.forEach(ev => {
         if (!ev.date) return;
+        const title = ev.title || '';
+        if (title.indexOf('參訪') === -1 && title.indexOf('導覽') === -1) return;
         if (!map[ev.date]) map[ev.date] = [];
         map[ev.date].push(ev);
       });
@@ -1041,25 +1062,25 @@
     function renderCalendar() {
       const titleEl = document.getElementById('calendar-title');
       const gridEl = document.getElementById('calendar-grid');
-      const detailEl = document.getElementById('calendar-detail');
 
       titleEl.textContent = `${calendarYear} 年 ${calendarMonth + 1} 月`;
-      detailEl.classList.add('hidden');
 
       const bookingMap = getBookingsByDate();
       const calEventMap = getCalEventsByDate();
       const today = new Date();
       const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
-      // 該月第一天是星期幾、總天數
       const firstDay = new Date(calendarYear, calendarMonth, 1).getDay();
       const daysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
+
+      const amPeriod = '上午 (09:00-12:00)';
+      const pmPeriod = '下午 (13:00-17:00)';
 
       let html = '';
 
       // 前置空格
       for (let i = 0; i < firstDay; i++) {
-        html += '<div class="cal-cell"></div>';
+        html += '<div class="cal-cell" style="background:transparent;min-height:auto;"></div>';
       }
 
       for (let d = 1; d <= daysInMonth; d++) {
@@ -1067,74 +1088,93 @@
         const dayOfWeek = dateObj.getDay();
         const dateStr = `${calendarYear}-${String(calendarMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 
-        const isWed = dayOfWeek === 3;
-        const isSun = dayOfWeek === 0;
-        const isClosed = isWed || isSun;
+        const isClosed = dayOfWeek === 0 || dayOfWeek === 3;
         const isPast = dateStr < todayStr;
         const isToday = dateStr === todayStr;
-        const isSelected = dateStr === selectedCalDate;
-        const hasBookings = bookingMap[dateStr] && bookingMap[dateStr].length > 0;
-        const hasOwnEvents = calEventMap[dateStr] && calEventMap[dateStr].some(e => e.source === 'own');
-        const hasOfficialEvents = calEventMap[dateStr] && calEventMap[dateStr].some(e => e.source === 'official');
-        const hasAnyContent = hasBookings || hasOwnEvents || hasOfficialEvents;
 
-        let cellClass = 'cal-cell text-sm';
-        let dotHtml = '';
+        const bookings = bookingMap[dateStr] || [];
+        const calEvents = calEventMap[dateStr] || [];
 
+        // 判斷上午/下午預約狀態
+        const hasAM = bookings.some(b => (b.period || '').indexOf('上午') !== -1 || (b.period || '').indexOf('09:00') !== -1);
+        const hasPM = bookings.some(b => (b.period || '').indexOf('下午') !== -1 || (b.period || '').indexOf('13:00') !== -1);
+
+        // 上午/下午日曆事件（參訪/導覽）名稱
+        const amEvents = calEvents.filter(ev => {
+          const t = (ev.start || '').split(' ')[1] || '';
+          return t < '13:00' || !t;
+        });
+        const pmEvents = calEvents.filter(ev => {
+          const t = (ev.start || '').split(' ')[1] || '';
+          return t >= '13:00';
+        });
+
+        // 上午時段小色塊
+        let amSlotClass = 'cal-slot ';
+        let amLabel = '午前';
+        let amClick = '';
         if (isClosed) {
-          cellClass += ' closed';
-          // 官方行程可能在休息日也有事件
-          if (hasOfficialEvents) {
-            dotHtml = '<span class="cal-dot bg-purple-500"></span>';
-            cellClass = 'cal-cell text-sm booked';
-          }
-        } else if (hasBookings || hasOwnEvents) {
-          cellClass += ' booked';
-          // 同時有官方行程時顯示雙圓點
-          if (hasOfficialEvents) {
-            dotHtml = '<span class="cal-dot bg-blue-500" style="left:calc(50% - 5px)"></span><span class="cal-dot bg-purple-500" style="left:calc(50% + 3px)"></span>';
-          } else {
-            dotHtml = '<span class="cal-dot bg-blue-500"></span>';
-          }
-        } else if (hasOfficialEvents) {
-          cellClass += ' booked';
-          dotHtml = '<span class="cal-dot bg-purple-500"></span>';
-        } else if (!isPast) {
-          cellClass += ' available';
-          dotHtml = '<span class="cal-dot bg-green-400"></span>';
+          amSlotClass += 'closed';
+          amLabel = '休';
+        } else if (isPast) {
+          amSlotClass += 'past';
+          amLabel = '午前';
+        } else if (hasAM) {
+          amSlotClass += 'booked';
+          const amB = bookings.find(b => (b.period || '').indexOf('上午') !== -1 || (b.period || '').indexOf('09:00') !== -1);
+          amLabel = amB ? escapeHTML((amB.company || amB.contact || '').substring(0, 4)) : '已約';
+        } else if (amEvents.length > 0) {
+          amSlotClass += 'booked';
+          amLabel = escapeHTML(amEvents[0].title.substring(0, 4));
         } else {
-          cellClass += ' text-slate-400';
+          amSlotClass += 'available';
+          amLabel = '可約';
+          amClick = `onclick="event.stopPropagation();fillBookingSlot('${dateStr}','${amPeriod}')"`;
         }
 
+        // 下午時段小色塊
+        let pmSlotClass = 'cal-slot ';
+        let pmLabel = '午後';
+        let pmClick = '';
+        if (isClosed) {
+          pmSlotClass += 'closed';
+          pmLabel = '休';
+        } else if (isPast) {
+          pmSlotClass += 'past';
+          pmLabel = '午後';
+        } else if (hasPM) {
+          pmSlotClass += 'booked';
+          const pmB = bookings.find(b => (b.period || '').indexOf('下午') !== -1 || (b.period || '').indexOf('13:00') !== -1);
+          pmLabel = pmB ? escapeHTML((pmB.company || pmB.contact || '').substring(0, 4)) : '已約';
+        } else if (pmEvents.length > 0) {
+          pmSlotClass += 'booked';
+          pmLabel = escapeHTML(pmEvents[0].title.substring(0, 4));
+        } else {
+          pmSlotClass += 'available';
+          pmLabel = '可約';
+          pmClick = `onclick="event.stopPropagation();fillBookingSlot('${dateStr}','${pmPeriod}')"`;
+        }
+
+        // 日期文字顏色
+        let dateColor = '';
+        if (dayOfWeek === 0) dateColor = 'color:#F87171;';
+        if (dayOfWeek === 6) dateColor = 'color:#60A5FA;';
+
+        let cellClass = 'cal-cell';
+        if (isClosed) cellClass += ' closed';
+        if (isPast) cellClass += ' past';
         if (isToday) cellClass += ' today';
-        if (isSelected) cellClass += ' selected';
+        const hasContent = (!isClosed && !isPast) || bookings.length > 0 || calEvents.length > 0;
+        if (hasContent) cellClass += ' has-content';
 
-        const clickable = hasAnyContent || (!isClosed && !isPast);
-        const onclick = clickable ? `onclick="selectCalDate('${dateStr}')"` : '';
-
-        html += `<div class="${cellClass}" ${onclick}>${d}${dotHtml}</div>`;
+        html += `<div class="${cellClass}" title="${dateStr}">
+          <div class="cal-date" style="${dateColor}">${d}</div>
+          <div class="${amSlotClass}" ${amClick} title="上午 09:00-12:00">${amLabel}</div>
+          <div class="${pmSlotClass}" ${pmClick} title="下午 13:00-17:00">${pmLabel}</div>
+        </div>`;
       }
 
       gridEl.innerHTML = html;
-
-      // 如果有選中的日期，顯示詳情
-      if (selectedCalDate) {
-        const bookings = bookingMap[selectedCalDate] || [];
-        const calEvents = calEventMap[selectedCalDate] || [];
-        showCalendarDetail(selectedCalDate, bookings, calEvents);
-      }
-    }
-
-    function selectCalDate(dateStr) {
-      selectedCalDate = dateStr;
-
-      const bookingMap = getBookingsByDate();
-      const calEventMap = getCalEventsByDate();
-      const bookings = bookingMap[dateStr] || [];
-      const calEvents = calEventMap[dateStr] || [];
-
-      renderCalendar();
-      showCalendarDetail(dateStr, bookings, calEvents);
     }
 
     /**
@@ -1153,125 +1193,6 @@
         periodSelect.classList.add('ring-2', 'ring-accent', 'ring-offset-1');
         setTimeout(() => periodSelect.classList.remove('ring-2', 'ring-accent', 'ring-offset-1'), 1500);
       }
-    }
-
-    function showCalendarDetail(dateStr, bookings, calEvents) {
-      const detailEl = document.getElementById('calendar-detail');
-      const titleEl = document.getElementById('calendar-detail-title');
-      const listEl = document.getElementById('calendar-detail-list');
-
-      detailEl.classList.remove('hidden');
-
-      // 判斷星期
-      const d = new Date(dateStr);
-      const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
-      const isClosed = d.getDay() === 0 || d.getDay() === 3;
-      const isPast = dateStr < `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`;
-      titleEl.textContent = `${dateStr}（星期${weekDays[d.getDay()]}）`;
-
-      calEvents = calEvents || [];
-      const officialEvents = calEvents.filter(e => e.source === 'official');
-
-      // 檢查上午/下午預約狀態
-      const hasAM = bookings.some(b => (b.period || '').indexOf('上午') !== -1 || (b.period || '').indexOf('09:00') !== -1);
-      const hasPM = bookings.some(b => (b.period || '').indexOf('下午') !== -1 || (b.period || '').indexOf('13:00') !== -1);
-
-      let html = '';
-
-      // 上下午時段區塊
-      const amPeriod = '上午 (09:00-12:00)';
-      const pmPeriod = '下午 (13:00-17:00)';
-
-      // --- 上午時段 ---
-      html += '<div class="rounded-lg border p-2.5 mb-1.5 ';
-      if (isClosed || isPast) {
-        html += 'border-slate-100 bg-slate-50">';
-      } else if (hasAM) {
-        html += 'border-blue-200 bg-blue-50">';
-      } else {
-        html += 'border-green-200 bg-green-50">';
-      }
-      html += '<div class="flex items-center justify-between">';
-      html += '<span class="text-xs font-semibold text-text-primary">上午 09:00-12:00</span>';
-      if (!isClosed && !isPast && !hasAM) {
-        html += `<button onclick="fillBookingSlot('${dateStr}', '${amPeriod}')" class="cursor-pointer text-xs bg-primary text-white px-2.5 py-1 rounded-md hover:bg-primary/90 transition-colors">預約此時段</button>`;
-      } else if (hasAM) {
-        html += '<span class="text-xs text-blue-600 font-medium">已有預約</span>';
-      } else if (isClosed) {
-        html += '<span class="text-xs text-slate-400">休息日</span>';
-      }
-      html += '</div>';
-
-      // 顯示上午預約詳情
-      const amBookings = bookings.filter(b => (b.period || '').indexOf('上午') !== -1 || (b.period || '').indexOf('09:00') !== -1);
-      amBookings.forEach(b => {
-        html += `<div class="mt-1.5 text-xs text-text-secondary border-t border-blue-100 pt-1.5">
-          <span class="font-medium text-text-primary">${escapeHTML(b.company || '')}</span>
-          · ${escapeHTML(b.contact || '')} · ${b.people || 0}人
-        </div>`;
-      });
-
-      // 上午官方行程
-      const amOfficialEvents = officialEvents.filter(ev => {
-        const startTime = (ev.start || '').split(' ')[1] || '';
-        return startTime < '13:00' || !startTime;
-      });
-      amOfficialEvents.forEach(ev => {
-        html += `<div class="mt-1.5 text-xs text-purple-700 border-t border-purple-100 pt-1.5">
-          <span class="inline-block w-2 h-2 rounded-full bg-purple-500 mr-1"></span>
-          <span class="font-medium">${escapeHTML(ev.title)}</span>
-          ${(ev.start || '').split(' ')[1] ? ' · ' + escapeHTML((ev.start || '').split(' ')[1]) : ''}
-        </div>`;
-      });
-
-      html += '</div>';
-
-      // --- 下午時段 ---
-      html += '<div class="rounded-lg border p-2.5 ';
-      if (isClosed || isPast) {
-        html += 'border-slate-100 bg-slate-50">';
-      } else if (hasPM) {
-        html += 'border-blue-200 bg-blue-50">';
-      } else {
-        html += 'border-green-200 bg-green-50">';
-      }
-      html += '<div class="flex items-center justify-between">';
-      html += '<span class="text-xs font-semibold text-text-primary">下午 13:00-17:00</span>';
-      if (!isClosed && !isPast && !hasPM) {
-        html += `<button onclick="fillBookingSlot('${dateStr}', '${pmPeriod}')" class="cursor-pointer text-xs bg-primary text-white px-2.5 py-1 rounded-md hover:bg-primary/90 transition-colors">預約此時段</button>`;
-      } else if (hasPM) {
-        html += '<span class="text-xs text-blue-600 font-medium">已有預約</span>';
-      } else if (isClosed) {
-        html += '<span class="text-xs text-slate-400">休息日</span>';
-      }
-      html += '</div>';
-
-      // 顯示下午預約詳情
-      const pmBookings = bookings.filter(b => (b.period || '').indexOf('下午') !== -1 || (b.period || '').indexOf('13:00') !== -1);
-      pmBookings.forEach(b => {
-        html += `<div class="mt-1.5 text-xs text-text-secondary border-t border-blue-100 pt-1.5">
-          <span class="font-medium text-text-primary">${escapeHTML(b.company || '')}</span>
-          · ${escapeHTML(b.contact || '')} · ${b.people || 0}人
-        </div>`;
-      });
-
-      // 下午官方行程
-      const pmOfficialEvents = officialEvents.filter(ev => {
-        const startTime = (ev.start || '').split(' ')[1] || '';
-        return startTime >= '13:00';
-      });
-      pmOfficialEvents.forEach(ev => {
-        html += `<div class="mt-1.5 text-xs text-purple-700 border-t border-purple-100 pt-1.5">
-          <span class="inline-block w-2 h-2 rounded-full bg-purple-500 mr-1"></span>
-          <span class="font-medium">${escapeHTML(ev.title)}</span>
-          ${(ev.start || '').split(' ')[1] ? ' · ' + escapeHTML((ev.start || '').split(' ')[1]) : ''}
-        </div>`;
-      });
-
-      html += '</div>';
-
-      listEl.innerHTML = html;
-      lucide.createIcons();
     }
 
     // ============================================================
