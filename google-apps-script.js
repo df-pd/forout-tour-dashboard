@@ -285,7 +285,7 @@ function handleLogin(data) {
       var permStr = String(rows[i][4] || '').trim();
 
       // 解析可見功能：admin 角色或空白 → 全部
-      var allTabs = ['booking', 'calendar', 'list', 'stats', 'qa'];
+      var allTabs = ['booking', 'list', 'stats', 'qa'];
       var permissions;
       if (role === 'admin' || !permStr) {
         permissions = allTabs;

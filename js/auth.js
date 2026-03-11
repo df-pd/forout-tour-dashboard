@@ -81,7 +81,7 @@ const Auth = {
       if (Array.isArray(perms) && perms.length > 0) return perms;
     } catch { /* 忽略 */ }
     // 預設全部可見
-    return ['booking', 'calendar', 'list', 'stats', 'qa'];
+    return ['booking', 'list', 'stats', 'qa'];
   },
 
   /**
