@@ -1186,12 +1186,14 @@
       if (dateInput) dateInput.value = dateStr;
       if (periodSelect) periodSelect.value = period;
 
-      // 滾動到表單並閃爍提示
-      const form = document.getElementById('booking-form');
-      if (form) {
-        form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // 視覺閃爍提示（不滾動頁面，避免 UX 跳動）
+      if (periodSelect) {
         periodSelect.classList.add('ring-2', 'ring-accent', 'ring-offset-1');
         setTimeout(() => periodSelect.classList.remove('ring-2', 'ring-accent', 'ring-offset-1'), 1500);
+      }
+      if (dateInput) {
+        dateInput.classList.add('ring-2', 'ring-accent', 'ring-offset-1');
+        setTimeout(() => dateInput.classList.remove('ring-2', 'ring-accent', 'ring-offset-1'), 1500);
       }
     }
 
