@@ -65,6 +65,22 @@ const CALENDAR_ID = '1ed9d1eb22c38ff479bed67eec478366a350ae750f6ce63a3ae937601d9
 const OFFICIAL_CALENDAR_ID = '71dc281c478614bd6b32fa271fb5427666009350524d8d7aeb2a3dcd00511094@group.calendar.google.com';
 
 // ============================================================
+// 試算表設定
+// ============================================================
+var SPREADSHEET_ID = '1SlGXwWgjjqoywFYx3nkE-7YolFfdLkK-Q1JuaT4Kt5Y';
+
+/**
+ * 取得試算表（優先用綁定的，備援用 ID 開啟）
+ */
+function getSpreadsheet() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (!ss) {
+    ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  }
+  return ss;
+}
+
+// ============================================================
 // 工具函式
 // ============================================================
 
@@ -106,7 +122,7 @@ function jsonResponse(obj) {
  * 取得或建立工作表
  */
 function getOrCreateSheet(name, headers) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = getSpreadsheet();
   var sheet = ss.getSheetByName(name);
   if (!sheet) {
     sheet = ss.insertSheet(name);
@@ -120,7 +136,7 @@ function getOrCreateSheet(name, headers) {
  */
 function verifyToken(token) {
   if (!token) return null;
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = getSpreadsheet();
   var sheet = ss.getSheetByName('帳號');
   if (!sheet) return null;
 
@@ -272,7 +288,7 @@ function handleLogin(data) {
     return jsonResponse({ success: false, error: '請輸入帳號和密碼' });
   }
 
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = getSpreadsheet();
   var sheet = ss.getSheetByName('帳號');
 
   if (!sheet) {
@@ -339,7 +355,7 @@ function handleUpdateCredentials(data) {
     return jsonResponse({ success: false, error: '請輸入新帳號或新密碼' });
   }
 
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = getSpreadsheet();
   var sheet = ss.getSheetByName('帳號');
   if (!sheet) {
     return jsonResponse({ success: false, error: '系統錯誤' });
@@ -432,7 +448,7 @@ function handleListBookings(data) {
     return jsonResponse({ success: false, error: '請先登入' });
   }
 
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = getSpreadsheet();
   var sheet = ss.getSheetByName('預約參訪');
 
   if (!sheet) {
@@ -612,7 +628,7 @@ function handleValidateLink(data) {
     return jsonResponse({ success: false, error: '請提供預約代碼' });
   }
 
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = getSpreadsheet();
   var sheet = ss.getSheetByName('預約連結');
   if (!sheet) {
     return jsonResponse({ success: false, error: '預約代碼無效' });
@@ -666,7 +682,7 @@ function handlePublicBooking(data) {
   }
 
   // 驗證連結有效性
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = getSpreadsheet();
   var linkSheet = ss.getSheetByName('預約連結');
   if (!linkSheet) {
     return jsonResponse({ success: false, error: '預約代碼無效' });
@@ -732,7 +748,7 @@ function handleListLinks(data) {
     return jsonResponse({ success: false, error: '請先登入' });
   }
 
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = getSpreadsheet();
   var sheet = ss.getSheetByName('預約連結');
 
   if (!sheet) {
@@ -793,7 +809,7 @@ var _qaKnowledgeCache = null;
 function loadQAKnowledge() {
   if (_qaKnowledgeCache) return _qaKnowledgeCache;
 
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = getSpreadsheet();
   var sheets = ss.getSheets();
   var qaSheet = null;
 
