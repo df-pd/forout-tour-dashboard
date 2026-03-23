@@ -889,7 +889,7 @@ function handleAiChat(data) {
   });
 
   // 呼叫 Gemini API
-  var url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + apiKey;
+  var url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey;
 
   var payload = {
     system_instruction: {
@@ -923,7 +923,7 @@ function handleAiChat(data) {
     if (statusCode !== 200) {
       var errMsg = (result.error && result.error.message) || '呼叫 AI 失敗';
       Logger.log('Gemini API 錯誤：' + statusCode + ' - ' + errMsg);
-      return jsonResponse({ success: false, error: 'AI 暫時無法回應，請稍後再試' });
+      return jsonResponse({ success: false, error: 'AI 錯誤（' + statusCode + '）：' + errMsg });
     }
 
     // 解析回應
