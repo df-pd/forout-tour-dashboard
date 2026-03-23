@@ -106,6 +106,39 @@
       color: white;
     }
 
+    /* AI Chat 提示泡泡動畫 */
+    #ai-chat-hint {
+      animation: hintBounce 2s ease-in-out 3s forwards, hintFadeIn 0.3s ease-out 1s both;
+    }
+    @keyframes hintFadeIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes hintBounce {
+      0%, 100% { opacity: 0; }
+      50% { opacity: 1; }
+    }
+
+    /* AI Chat 面板滑入 */
+    #ai-chat-panel {
+      animation: chatSlideUp 0.25s ease-out;
+    }
+    @keyframes chatSlideUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* AI Chat 訊息打字動畫 */
+    .ai-typing-dot {
+      animation: typingDot 1.2s ease-in-out infinite;
+    }
+    .ai-typing-dot:nth-child(2) { animation-delay: 0.15s; }
+    .ai-typing-dot:nth-child(3) { animation-delay: 0.3s; }
+    @keyframes typingDot {
+      0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+      30% { opacity: 1; transform: translateY(-3px); }
+    }
+
     /* 響應式滾動表格 */
     .table-wrapper {
       overflow-x: auto;
@@ -527,6 +560,73 @@
       </p>
     </div>
   </footer>
+
+  <!-- ==================== AI Chat 浮動助手 ==================== -->
+  <div id="ai-chat-fab" onclick="toggleAiChat()" class="fixed bottom-6 right-6 z-50 w-14 h-14 bg-primary rounded-full shadow-lg flex items-center justify-center cursor-pointer hover:shadow-xl hover:scale-105 transition-all duration-200" aria-label="AI 導覽助手">
+    <i data-lucide="bot" class="w-6 h-6 text-white" id="ai-fab-icon-open"></i>
+    <i data-lucide="x" class="w-6 h-6 text-white hidden" id="ai-fab-icon-close"></i>
+    <!-- 提示泡泡 -->
+    <div id="ai-chat-hint" class="absolute bottom-full right-0 mb-3 bg-white rounded-xl shadow-lg border border-slate-200 px-4 py-2.5 whitespace-nowrap text-sm text-text-primary font-medium">
+      有問題嗎？問我吧！
+      <div class="absolute -bottom-1.5 right-6 w-3 h-3 bg-white border-b border-r border-slate-200 rotate-45"></div>
+    </div>
+  </div>
+
+  <!-- Chat 面板 -->
+  <div id="ai-chat-panel" class="hidden fixed bottom-24 right-6 z-50 w-[360px] max-w-[calc(100vw-2rem)] bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col" style="height: 520px; max-height: calc(100vh - 8rem);">
+    <!-- 標題列 -->
+    <div class="bg-primary px-5 py-3.5 flex items-center gap-3 flex-shrink-0">
+      <div class="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+        <i data-lucide="bot" class="w-4 h-4 text-white"></i>
+      </div>
+      <div class="flex-1">
+        <h3 class="text-sm font-bold text-white">AI 導覽助手</h3>
+        <p class="text-xs text-white/70">五股資源循環教育基地</p>
+      </div>
+      <button onclick="toggleAiChat()" class="cursor-pointer p-1.5 rounded-lg hover:bg-white/10 transition-colors" aria-label="關閉聊天">
+        <i data-lucide="minus" class="w-4 h-4 text-white"></i>
+      </button>
+    </div>
+
+    <!-- 對話區域 -->
+    <div id="ai-chat-messages" class="flex-1 overflow-y-auto px-4 py-4 space-y-3" style="scroll-behavior: smooth;">
+      <!-- 歡迎訊息 -->
+      <div class="flex items-start gap-2.5">
+        <div class="w-7 h-7 bg-blue-50 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+          <i data-lucide="bot" class="w-3.5 h-3.5 text-primary"></i>
+        </div>
+        <div class="bg-slate-50 rounded-2xl rounded-tl-md px-4 py-2.5 max-w-[85%]">
+          <p class="text-sm text-text-primary leading-relaxed">你好！我是五股資源循環教育基地的 AI 導覽助手 🤖<br><br>你可以問我關於基地的任何問題，例如：</p>
+          <div class="mt-2 space-y-1.5">
+            <button onclick="sendQuickQuestion('本廠站處理量占新北總量的幾成？')" class="cursor-pointer block w-full text-left text-xs text-primary bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg transition-colors">📊 本廠站處理量占新北總量的幾成？</button>
+            <button onclick="sendQuickQuestion('本廠工作人員有多少個？')" class="cursor-pointer block w-full text-left text-xs text-primary bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg transition-colors">👷 本廠工作人員有多少個？</button>
+            <button onclick="sendQuickQuestion('AI智能手臂怎麼辨識物件？')" class="cursor-pointer block w-full text-left text-xs text-primary bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg transition-colors">🤖 AI 智能手臂怎麼辨識物件？</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 輸入區域 -->
+    <div class="border-t border-slate-200 px-4 py-3 flex-shrink-0">
+      <form id="ai-chat-form" onsubmit="handleAiChatSubmit(event)" class="flex items-end gap-2">
+        <div class="flex-1 relative">
+          <textarea
+            id="ai-chat-input"
+            rows="1"
+            placeholder="輸入你的問題..."
+            class="w-full resize-none text-sm border border-slate-200 rounded-xl px-4 py-2.5 pr-3 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+            style="max-height: 80px;"
+            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();handleAiChatSubmit(event);}"
+            oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,80)+'px';"
+          ></textarea>
+        </div>
+        <button type="submit" id="ai-chat-send-btn" class="cursor-pointer flex-shrink-0 w-10 h-10 bg-primary text-white rounded-xl flex items-center justify-center hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" aria-label="送出">
+          <i data-lucide="send-horizontal" class="w-4 h-4"></i>
+        </button>
+      </form>
+      <p class="text-[10px] text-slate-400 mt-1.5 text-center">AI 回覆僅供參考，詳情請以現場說明為準</p>
+    </div>
+  </div>
 
   <!-- ==================== 登入 Modal ==================== -->
   <div id="login-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -1546,6 +1646,150 @@
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') closeLoginModal();
     });
+
+    // ============================================================
+    // AI Chat
+    // ============================================================
+    let aiChatOpen = false;
+    let aiChatHistory = [];  // {role: 'user'|'model', text: '...'}
+    let aiChatBusy = false;
+
+    function toggleAiChat() {
+      aiChatOpen = !aiChatOpen;
+      const panel = document.getElementById('ai-chat-panel');
+      const iconOpen = document.getElementById('ai-fab-icon-open');
+      const iconClose = document.getElementById('ai-fab-icon-close');
+      const hint = document.getElementById('ai-chat-hint');
+
+      if (aiChatOpen) {
+        panel.classList.remove('hidden');
+        iconOpen.classList.add('hidden');
+        iconClose.classList.remove('hidden');
+        if (hint) hint.remove();
+        // 滾動到底部
+        const msgs = document.getElementById('ai-chat-messages');
+        msgs.scrollTop = msgs.scrollHeight;
+        // 聚焦輸入框
+        setTimeout(() => document.getElementById('ai-chat-input').focus(), 100);
+      } else {
+        panel.classList.add('hidden');
+        iconOpen.classList.remove('hidden');
+        iconClose.classList.add('hidden');
+      }
+      lucide.createIcons();
+    }
+
+    function sendQuickQuestion(text) {
+      document.getElementById('ai-chat-input').value = text;
+      handleAiChatSubmit(new Event('submit'));
+    }
+
+    async function handleAiChatSubmit(e) {
+      e.preventDefault();
+      if (aiChatBusy) return;
+
+      const input = document.getElementById('ai-chat-input');
+      const message = input.value.trim();
+      if (!message) return;
+
+      input.value = '';
+      input.style.height = 'auto';
+
+      // 顯示使用者訊息
+      appendChatMessage('user', message);
+      aiChatHistory.push({ role: 'user', text: message });
+
+      // 顯示 typing 指示器
+      const typingEl = appendTypingIndicator();
+      aiChatBusy = true;
+      updateSendButton(true);
+
+      try {
+        const resp = await fetch(GOOGLE_SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            action: 'aiChat',
+            message: message,
+            history: aiChatHistory.slice(-20)  // 最近 10 輪
+          })
+        });
+
+        const result = await resp.json();
+        typingEl.remove();
+
+        if (result.success && result.reply) {
+          appendChatMessage('ai', result.reply);
+          aiChatHistory.push({ role: 'model', text: result.reply });
+        } else {
+          appendChatMessage('ai', result.error || '抱歉，目前無法回應，請稍後再試。');
+        }
+      } catch (err) {
+        typingEl.remove();
+        appendChatMessage('ai', '連線失敗，請檢查網路後再試。');
+      }
+
+      aiChatBusy = false;
+      updateSendButton(false);
+    }
+
+    function appendChatMessage(role, text) {
+      const container = document.getElementById('ai-chat-messages');
+      const div = document.createElement('div');
+      div.className = 'flex items-start gap-2.5' + (role === 'user' ? ' flex-row-reverse' : '');
+
+      // 將換行轉為 <br>，並 escape HTML
+      const safeText = escapeHTML(text).replace(/\n/g, '<br>');
+
+      if (role === 'user') {
+        div.innerHTML = `
+          <div class="bg-primary text-white rounded-2xl rounded-tr-md px-4 py-2.5 max-w-[85%]">
+            <p class="text-sm leading-relaxed">${safeText}</p>
+          </div>`;
+      } else {
+        div.innerHTML = `
+          <div class="w-7 h-7 bg-blue-50 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+            <i data-lucide="bot" class="w-3.5 h-3.5 text-primary"></i>
+          </div>
+          <div class="bg-slate-50 rounded-2xl rounded-tl-md px-4 py-2.5 max-w-[85%]">
+            <p class="text-sm text-text-primary leading-relaxed">${safeText}</p>
+          </div>`;
+      }
+
+      container.appendChild(div);
+      lucide.createIcons();
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function appendTypingIndicator() {
+      const container = document.getElementById('ai-chat-messages');
+      const div = document.createElement('div');
+      div.className = 'flex items-start gap-2.5 ai-typing';
+      div.innerHTML = `
+        <div class="w-7 h-7 bg-blue-50 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+          <i data-lucide="bot" class="w-3.5 h-3.5 text-primary"></i>
+        </div>
+        <div class="bg-slate-50 rounded-2xl rounded-tl-md px-4 py-3 flex items-center gap-1.5">
+          <div class="w-2 h-2 bg-slate-400 rounded-full ai-typing-dot"></div>
+          <div class="w-2 h-2 bg-slate-400 rounded-full ai-typing-dot"></div>
+          <div class="w-2 h-2 bg-slate-400 rounded-full ai-typing-dot"></div>
+        </div>`;
+      container.appendChild(div);
+      lucide.createIcons();
+      container.scrollTop = container.scrollHeight;
+      return div;
+    }
+
+    function updateSendButton(busy) {
+      const btn = document.getElementById('ai-chat-send-btn');
+      btn.disabled = busy;
+    }
+
+    // 5 秒後自動隱藏提示泡泡
+    setTimeout(() => {
+      const hint = document.getElementById('ai-chat-hint');
+      if (hint) hint.style.display = 'none';
+    }, 6000);
 
     // 頁面載入
     document.addEventListener('DOMContentLoaded', () => {
