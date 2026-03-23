@@ -889,7 +889,7 @@ function handleAiChat(data) {
   });
 
   // 呼叫 Gemini API
-  var url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey;
+  var url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=' + apiKey;
 
   var payload = {
     system_instruction: {
