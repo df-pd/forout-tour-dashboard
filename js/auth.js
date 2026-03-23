@@ -5,7 +5,7 @@
  */
 const Auth = {
   // Google Apps Script Web App URL
-  GAS_URL: 'https://script.google.com/macros/s/AKfycbwXgJQeyY7fUOU4gpWSGK31LVB7HbuYnN86enmeAp3dI6RAK8nPb4Cmkp0uoxEIXtpKmQ/exec',
+  GAS_URL: 'https://script.google.com/macros/s/AKfycbxJnBjVuPweU9SsqwxNF8YuPAyQJNtkp3M0G_6udXijr9vUkUAR2adYQkr3mR54EalwSw/exec',
 
   /**
    * 登入（透過 GAS 比對 Google Sheet 帳號）
