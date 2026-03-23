@@ -24,3 +24,7 @@ node_modules/
 service_account.json
 *.pem
 *.key
+
+# GAS 後端程式碼（含 API 設定，不應公開）
+google-apps-script.js
+程式碼.js
