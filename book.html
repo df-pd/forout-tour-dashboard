@@ -634,6 +634,11 @@
 
       // 儲存語言偏好
       try { localStorage.setItem('book_lang', lang); } catch {}
+
+      // 重新渲染日曆（更新語系文字）
+      if (document.getElementById('calendar-grid') && document.getElementById('calendar-grid').innerHTML) {
+        renderCalendar();
+      }
     }
 
     // ============================================================
@@ -789,17 +794,10 @@
       const titleEl = document.getElementById('calendar-title');
       const gridEl = document.getElementById('calendar-grid');
 
-      // 月份標題（多語系）
-      if (currentLang === 'en') {
-        const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-        titleEl.textContent = `${monthNames[calendarMonth]} ${calendarYear}`;
-      } else if (currentLang === 'ja') {
-        titleEl.textContent = `${calendarYear}年 ${calendarMonth + 1}月`;
-      } else if (currentLang === 'ko') {
-        titleEl.textContent = `${calendarYear}년 ${calendarMonth + 1}월`;
-      } else {
-        titleEl.textContent = `${calendarYear} 年 ${calendarMonth + 1} 月`;
-      }
+      // 月份標題（統一用國際格式）
+      const titleDate = new Date(calendarYear, calendarMonth, 1);
+      const localMap = { 'zh-TW': 'zh-TW', en: 'en-US', ja: 'ja-JP', ko: 'ko-KR' };
+      titleEl.textContent = titleDate.toLocaleDateString(localMap[currentLang] || 'zh-TW', { year: 'numeric', month: 'long' });
 
       const today = new Date();
       const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
