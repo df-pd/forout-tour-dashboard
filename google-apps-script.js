@@ -50,6 +50,11 @@
  */
 
 // ============================================================
+// Gemini API 設定（備援，優先使用指令碼屬性）
+// ============================================================
+var GEMINI_API_KEY_ = 'AIzaSyAdyBtmMqj0BRosoGxdzfKxWBf_CBAGAzg';
+
+// ============================================================
 // Google 日曆設定
 // ============================================================
 
@@ -844,8 +849,16 @@ function handleAiChat(data) {
     return jsonResponse({ success: false, error: '請輸入問題' });
   }
 
-  // 取得 Gemini API Key
-  var apiKey = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');
+  // 取得 Gemini API Key（優先從指令碼屬性讀取，備援用常數）
+  var apiKey = '';
+  try {
+    apiKey = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY') || '';
+  } catch (e) {
+    Logger.log('讀取 Script Properties 失敗：' + e.message);
+  }
+  if (!apiKey) {
+    apiKey = GEMINI_API_KEY_ || '';
+  }
   if (!apiKey) {
     return jsonResponse({
       success: false,
