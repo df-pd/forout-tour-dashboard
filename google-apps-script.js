@@ -52,7 +52,7 @@
 // ============================================================
 // Gemini API 設定（備援，優先使用指令碼屬性）
 // ============================================================
-var GEMINI_API_KEY_ = 'AIzaSyAdyBtmMqj0BRosoGxdzfKxWBf_CBAGAzg';
+var GEMINI_API_KEY_ = 'AIzaSyAqS5yGajsNx4Q_vnUveU3FXnTGfgkbofQ';
 
 // ============================================================
 // Google 日曆設定
