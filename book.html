@@ -61,6 +61,60 @@
       background-color: #1E40AF;
       color: white;
     }
+
+    /* 日曆格子 */
+    .cal-cell {
+      display: flex;
+      flex-direction: column;
+      border-radius: 0.5rem;
+      transition: all 150ms ease;
+      position: relative;
+      min-height: 72px;
+      padding: 2px;
+      background-color: #F8FAFC;
+    }
+    .cal-cell.has-content { cursor: pointer; }
+    .cal-cell.has-content:hover {
+      transform: scale(1.03);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .cal-cell.closed { background-color: #F1F5F9; color: #CBD5E1; }
+    .cal-cell.past { opacity: 0.5; }
+    .cal-cell.today { box-shadow: inset 0 0 0 2px #1E40AF; }
+    .cal-cell .cal-date {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-align: center;
+      line-height: 1;
+      padding: 2px 0 1px;
+    }
+    .cal-slot {
+      flex: 1;
+      border-radius: 0.25rem;
+      margin: 1px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.55rem;
+      line-height: 1.1;
+      font-weight: 500;
+      padding: 1px 2px;
+      text-align: center;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      transition: all 150ms ease;
+    }
+    .cal-slot.available { background-color: #D1FAE5; color: #065F46; cursor: pointer; }
+    .cal-slot.available:hover { background-color: #A7F3D0; box-shadow: 0 0 0 1px #10B981; }
+    .cal-slot.booked { background-color: #FEE2E2; color: #991B1B; }
+    .cal-slot.closed { background-color: #F1F5F9; color: #CBD5E1; }
+    .cal-slot.past { background-color: #F1F5F9; color: #94A3B8; }
+    @media (max-width: 640px) {
+      .cal-cell { min-height: 56px; }
+      .cal-slot { font-size: 0.5rem; }
+      .cal-cell .cal-date { font-size: 0.6rem; }
+    }
   </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -111,6 +165,47 @@
 
     <!-- 預約表單 -->
     <div id="state-form" class="hidden fade-in">
+
+      <!-- 日曆區塊 -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 sm:p-6 mb-6">
+        <div class="flex items-center justify-between mb-4">
+          <button onclick="changeMonth(-1)" class="cursor-pointer p-1.5 rounded-lg hover:bg-slate-100 transition-colors">
+            <i data-lucide="chevron-left" class="w-4 h-4 text-text-primary"></i>
+          </button>
+          <h3 id="calendar-title" class="text-sm font-bold text-text-primary"></h3>
+          <button onclick="changeMonth(1)" class="cursor-pointer p-1.5 rounded-lg hover:bg-slate-100 transition-colors">
+            <i data-lucide="chevron-right" class="w-4 h-4 text-text-primary"></i>
+          </button>
+        </div>
+
+        <!-- 圖例 -->
+        <div class="flex flex-wrap gap-3 mb-3 text-xs text-text-secondary">
+          <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-green-300 inline-block"></span> <span data-i18n="calAvailable">可預約</span></span>
+          <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-red-200 inline-block"></span> <span data-i18n="calBooked">已預約</span></span>
+          <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-slate-200 inline-block"></span> <span data-i18n="calClosed">休息/過去</span></span>
+        </div>
+
+        <!-- 載入中 -->
+        <div id="calendar-loading" class="hidden text-center py-4 text-xs text-text-secondary">
+          <div class="w-5 h-5 border-2 border-primary/20 border-t-primary rounded-full animate-spin mx-auto mb-1"></div>
+          <span data-i18n="calLoading">載入中...</span>
+        </div>
+
+        <!-- 星期標頭 -->
+        <div class="grid grid-cols-7 text-center text-xs font-semibold text-text-secondary mb-1">
+          <div class="py-1.5 text-red-400" data-i18n="calSun">日</div>
+          <div class="py-1.5" data-i18n="calMon">一</div>
+          <div class="py-1.5" data-i18n="calTue">二</div>
+          <div class="py-1.5" data-i18n="calWed">三</div>
+          <div class="py-1.5" data-i18n="calThu">四</div>
+          <div class="py-1.5" data-i18n="calFri">五</div>
+          <div class="py-1.5 text-blue-400" data-i18n="calSat">六</div>
+        </div>
+
+        <!-- 日曆格子 -->
+        <div id="calendar-grid" class="grid grid-cols-7 gap-1"></div>
+      </div>
+
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         <!-- 左側：表單 -->
@@ -335,6 +430,12 @@
         successMsg: '感謝您的預約，我們將盡快與您聯繫確認參訪時間。',
         successContact: '如有任何問題，歡迎來電洽詢：',
         footer: '大豐環保科技股份有限公司',
+        calAvailable: '可預約',
+        calBooked: '已預約',
+        calClosed: '休息/過去',
+        calLoading: '載入中...',
+        calSun: '日', calMon: '一', calTue: '二', calWed: '三', calThu: '四', calFri: '五', calSat: '六',
+        calAM: '午前', calPM: '午後', calAvail: '可約', calRest: '休', calBookedShort: '已約',
       },
       en: {
         headerTitle: 'Da Fon Environmental Technology',
@@ -382,6 +483,12 @@
         successMsg: 'Thank you for your booking. We will contact you shortly to confirm.',
         successContact: 'For any questions, please call:',
         footer: 'Da Fon Environmental Technology Co., Ltd.',
+        calAvailable: 'Available',
+        calBooked: 'Booked',
+        calClosed: 'Closed/Past',
+        calLoading: 'Loading...',
+        calSun: 'Sun', calMon: 'Mon', calTue: 'Tue', calWed: 'Wed', calThu: 'Thu', calFri: 'Fri', calSat: 'Sat',
+        calAM: 'AM', calPM: 'PM', calAvail: 'Open', calRest: 'Off', calBookedShort: 'Full',
       },
       ja: {
         headerTitle: '大豊環保科技',
@@ -429,6 +536,12 @@
         successMsg: 'ご予約ありがとうございます。確認後、折り返しご連絡いたします。',
         successContact: 'ご質問がございましたらお電話ください：',
         footer: '大豊環保科技股份有限公司',
+        calAvailable: '予約可',
+        calBooked: '予約済',
+        calClosed: '休業/過去',
+        calLoading: '読み込み中...',
+        calSun: '日', calMon: '月', calTue: '火', calWed: '水', calThu: '木', calFri: '金', calSat: '土',
+        calAM: '午前', calPM: '午後', calAvail: '空き', calRest: '休', calBookedShort: '済',
       },
       ko: {
         headerTitle: '다펑 환경기술',
@@ -476,6 +589,12 @@
         successMsg: '예약해주셔서 감사합니다. 확인 후 연락드리겠습니다.',
         successContact: '문의사항이 있으시면 전화해주세요:',
         footer: '다펑환경기술주식회사',
+        calAvailable: '예약 가능',
+        calBooked: '예약 완료',
+        calClosed: '휴무/지남',
+        calLoading: '로딩 중...',
+        calSun: '일', calMon: '월', calTue: '화', calWed: '수', calThu: '목', calFri: '금', calSat: '토',
+        calAM: '오전', calPM: '오후', calAvail: '가능', calRest: '휴', calBookedShort: '완료',
       }
     };
 
@@ -560,6 +679,8 @@
           showState('form');
           const dateInput = document.getElementById('visit-date');
           dateInput.min = new Date().toISOString().split('T')[0];
+          // 載入日曆
+          loadPublicCalendar().then(() => renderCalendar());
         } else {
           document.getElementById('invalid-message').textContent = result.error || t.invalidMsg;
           showState('invalid');
@@ -620,6 +741,169 @@
         btn.disabled = false;
         textEl.textContent = t.btnSubmit;
       }
+    }
+
+    // ============================================================
+    // 導覽日曆
+    // ============================================================
+
+    let calendarYear = new Date().getFullYear();
+    let calendarMonth = new Date().getMonth(); // 0-based
+    let calendarSlots = {}; // { '2026-03-25': { am: true, pm: false } }
+
+    async function changeMonth(delta) {
+      calendarMonth += delta;
+      if (calendarMonth > 11) { calendarMonth = 0; calendarYear++; }
+      if (calendarMonth < 0) { calendarMonth = 11; calendarYear--; }
+      await loadPublicCalendar();
+      renderCalendar();
+    }
+
+    async function loadPublicCalendar() {
+      const loadingEl = document.getElementById('calendar-loading');
+      if (loadingEl) loadingEl.classList.remove('hidden');
+
+      try {
+        const resp = await fetch(GAS_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            action: 'publicCalendarEvents',
+            year: calendarYear,
+            month: calendarMonth + 1
+          }),
+        });
+        const result = await resp.json();
+        if (result.success && result.slots) {
+          calendarSlots = result.slots;
+        }
+      } catch (e) {
+        console.error('載入日曆失敗:', e);
+      } finally {
+        if (loadingEl) loadingEl.classList.add('hidden');
+      }
+    }
+
+    function renderCalendar() {
+      const t = i18n[currentLang] || i18n['zh-TW'];
+      const titleEl = document.getElementById('calendar-title');
+      const gridEl = document.getElementById('calendar-grid');
+
+      // 月份標題（多語系）
+      if (currentLang === 'en') {
+        const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        titleEl.textContent = `${monthNames[calendarMonth]} ${calendarYear}`;
+      } else if (currentLang === 'ja') {
+        titleEl.textContent = `${calendarYear}年 ${calendarMonth + 1}月`;
+      } else if (currentLang === 'ko') {
+        titleEl.textContent = `${calendarYear}년 ${calendarMonth + 1}월`;
+      } else {
+        titleEl.textContent = `${calendarYear} 年 ${calendarMonth + 1} 月`;
+      }
+
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+      const firstDay = new Date(calendarYear, calendarMonth, 1).getDay();
+      const daysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
+
+      const amPeriod = '上午 (09:00-12:00)';
+      const pmPeriod = '下午 (13:00-17:00)';
+
+      let html = '';
+
+      // 前置空格
+      for (let i = 0; i < firstDay; i++) {
+        html += '<div class="cal-cell" style="background:transparent;min-height:auto;"></div>';
+      }
+
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dateObj = new Date(calendarYear, calendarMonth, d);
+        const dayOfWeek = dateObj.getDay();
+        const dateStr = `${calendarYear}-${String(calendarMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+
+        const isClosed = dayOfWeek === 0 || dayOfWeek === 3;
+        const isPast = dateStr < todayStr;
+        const isToday = dateStr === todayStr;
+
+        const slot = calendarSlots[dateStr] || { am: false, pm: false };
+
+        // 上午時段
+        let amSlotClass = 'cal-slot ';
+        let amLabel = t.calAM || '午前';
+        let amClick = '';
+        if (isClosed) {
+          amSlotClass += 'closed';
+          amLabel = t.calRest || '休';
+        } else if (isPast) {
+          amSlotClass += 'past';
+        } else if (slot.am) {
+          amSlotClass += 'booked';
+          amLabel = t.calBookedShort || '已約';
+        } else {
+          amSlotClass += 'available';
+          amLabel = t.calAvail || '可約';
+          amClick = `onclick="event.stopPropagation();fillBookingSlot('${dateStr}','${amPeriod}')"`;
+        }
+
+        // 下午時段
+        let pmSlotClass = 'cal-slot ';
+        let pmLabel = t.calPM || '午後';
+        let pmClick = '';
+        if (isClosed) {
+          pmSlotClass += 'closed';
+          pmLabel = t.calRest || '休';
+        } else if (isPast) {
+          pmSlotClass += 'past';
+        } else if (slot.pm) {
+          pmSlotClass += 'booked';
+          pmLabel = t.calBookedShort || '已約';
+        } else {
+          pmSlotClass += 'available';
+          pmLabel = t.calAvail || '可約';
+          pmClick = `onclick="event.stopPropagation();fillBookingSlot('${dateStr}','${pmPeriod}')"`;
+        }
+
+        // 日期文字顏色
+        let dateColor = '';
+        if (dayOfWeek === 0) dateColor = 'color:#F87171;';
+        if (dayOfWeek === 6) dateColor = 'color:#60A5FA;';
+
+        let cellClass = 'cal-cell';
+        if (isClosed) cellClass += ' closed';
+        if (isPast) cellClass += ' past';
+        if (isToday) cellClass += ' today';
+        if (!isClosed && !isPast) cellClass += ' has-content';
+
+        html += `<div class="${cellClass}" title="${dateStr}">
+          <div class="cal-date" style="${dateColor}">${d}</div>
+          <div class="${amSlotClass}" ${amClick} title="${t.calAM || '上午'} 09:00-12:00">${amLabel}</div>
+          <div class="${pmSlotClass}" ${pmClick} title="${t.calPM || '下午'} 13:00-17:00">${pmLabel}</div>
+        </div>`;
+      }
+
+      gridEl.innerHTML = html;
+    }
+
+    /**
+     * 點擊時段 → 自動帶入表單的日期與時段
+     */
+    function fillBookingSlot(dateStr, period) {
+      const dateInput = document.getElementById('visit-date');
+      const periodSelect = document.getElementById('visit-period');
+      if (dateInput) dateInput.value = dateStr;
+      if (periodSelect) periodSelect.value = period;
+
+      // 視覺閃爍提示
+      [dateInput, periodSelect].forEach(el => {
+        if (!el) return;
+        el.classList.add('ring-2', 'ring-amber-400', 'ring-offset-1');
+        setTimeout(() => el.classList.remove('ring-2', 'ring-amber-400', 'ring-offset-1'), 1500);
+      });
+
+      // 滾動到表單
+      const formEl = document.getElementById('booking-form');
+      if (formEl) formEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     // ============================================================
