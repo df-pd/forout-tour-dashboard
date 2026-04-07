@@ -247,7 +247,7 @@
     <div id="tab-stats">
 
       <!-- KPI 統計卡片 -->
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
         <!-- 總場次 -->
         <div class="kpi-card bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
           <div class="flex items-center justify-between mb-3">
@@ -303,6 +303,20 @@
           </div>
           <p class="text-xs text-text-secondary mt-1">場</p>
         </div>
+
+        <!-- 國家數量 -->
+        <div class="kpi-card bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-medium text-text-secondary uppercase tracking-wider">國家數量</span>
+            <div class="w-8 h-8 bg-rose-50 rounded-lg flex items-center justify-center">
+              <i data-lucide="globe" class="w-4 h-4 text-rose-600"></i>
+            </div>
+          </div>
+          <div id="kpi-countries" class="text-3xl font-bold font-mono text-text-primary">
+            <div class="skeleton h-9 w-12"></div>
+          </div>
+          <p class="text-xs text-text-secondary mt-1">國</p>
+        </div>
       </div>
 
       <!-- 圖表區 -->
@@ -317,9 +331,28 @@
 
         <!-- 單位別統計 -->
         <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
-          <h3 class="text-sm font-semibold text-text-primary mb-4">單位別統計（前 10 名）</h3>
+          <h3 class="text-sm font-semibold text-text-primary mb-4">單位別場次統計（前 10 名）</h3>
           <div class="relative" style="height: 280px;">
             <canvas id="chartUnit"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- 國家分布圖 -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+          <h3 class="text-sm font-semibold text-text-primary mb-4">國家分布（依場次）</h3>
+          <div class="relative" style="height: 280px;">
+            <canvas id="chartCountry"></canvas>
+          </div>
+        </div>
+        <!-- 國家清單 -->
+        <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+          <h3 class="text-sm font-semibold text-text-primary mb-4">國家明細</h3>
+          <div id="countryList" class="overflow-y-auto" style="height: 280px;">
+            <div class="skeleton h-6 w-full mb-2"></div>
+            <div class="skeleton h-6 w-3/4 mb-2"></div>
+            <div class="skeleton h-6 w-1/2"></div>
           </div>
         </div>
       </div>
@@ -710,6 +743,7 @@
     let activeQAFilter = 'all';
     let monthlyChart = null;
     let unitChart = null;
+    let countryChart = null;
 
     // ============================================================
     // 資料載入
@@ -928,10 +962,20 @@
         return d && d.getMonth() === currentMonth && d.getFullYear() === currentYear;
       }).length;
 
+      // 計算不重複國家數量
+      const countries = new Set(tourData.map(r => r.country).filter(c => c && c !== '-'));
+      const countryCount = countries.size;
+
       document.getElementById('kpi-sessions').textContent = totalSessions.toLocaleString();
       document.getElementById('kpi-people').textContent = totalPeople.toLocaleString();
       document.getElementById('kpi-avg').textContent = avg;
       document.getElementById('kpi-month').textContent = monthSessions.toLocaleString();
+      document.getElementById('kpi-countries').textContent = countryCount.toLocaleString();
+
+      // 在 console 列出所有國家（方便除錯）
+      if (countries.size > 0) {
+        console.log('名單中的國家：', [...countries].sort().join(', '));
+      }
     }
 
     /**
@@ -971,6 +1015,7 @@
     function renderCharts() {
       renderMonthlyChart();
       renderUnitChart();
+      renderCountryChart();
     }
 
     function renderMonthlyChart() {
@@ -1060,12 +1105,12 @@
     }
 
     function renderUnitChart() {
-      // 按單位統計，取前 10
+      // 按單位統計場次數，取前 10
       const unitMap = {};
       tourData.forEach(r => {
         if (!r.unit) return;
         if (!unitMap[r.unit]) unitMap[r.unit] = 0;
-        unitMap[r.unit] += r.people;
+        unitMap[r.unit] += 1;  // 計算場次數，非人數
       });
 
       const sorted = Object.entries(unitMap)
@@ -1085,7 +1130,7 @@
         data: {
           labels: sorted.map(([unit]) => unit.length > 8 ? unit.slice(0, 8) + '...' : unit),
           datasets: [{
-            label: '總人數',
+            label: '場次數',
             data: sorted.map(([, count]) => count),
             backgroundColor: colors.slice(0, sorted.length),
             borderRadius: 6,
@@ -1105,7 +1150,7 @@
                   const idx = items[0].dataIndex;
                   return sorted[idx][0]; // 顯示完整名稱
                 },
-                label: (item) => ` ${item.raw.toLocaleString()} 人次`
+                label: (item) => ` ${item.raw.toLocaleString()} 場次`
               }
             }
           },
@@ -1121,6 +1166,81 @@
           }
         }
       });
+    }
+
+    function renderCountryChart() {
+      // 按國家統計場次數
+      const countryMap = {};
+      tourData.forEach(r => {
+        const c = r.country || '未填寫';
+        if (!countryMap[c]) countryMap[c] = 0;
+        countryMap[c] += 1;
+      });
+
+      const sorted = Object.entries(countryMap)
+        .sort((a, b) => b[1] - a[1]);
+
+      // 圓餅圖顏色
+      const pieColors = [
+        '#1E40AF', '#3B82F6', '#60A5FA', '#93C5FD', '#BFDBFE',
+        '#F59E0B', '#FBBF24', '#FCD34D', '#10B981', '#6EE7B7',
+        '#EF4444', '#F87171', '#8B5CF6', '#A78BFA', '#EC4899'
+      ];
+
+      // 渲染圓餅圖
+      const ctx = document.getElementById('chartCountry');
+      if (countryChart) countryChart.destroy();
+
+      countryChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: sorted.map(([country]) => country),
+          datasets: [{
+            data: sorted.map(([, count]) => count),
+            backgroundColor: pieColors.slice(0, sorted.length),
+            borderWidth: 2,
+            borderColor: '#fff',
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'right',
+              labels: { font: { size: 11 }, padding: 12 }
+            },
+            tooltip: {
+              backgroundColor: '#1E3A8A',
+              callbacks: {
+                label: (item) => {
+                  const total = item.dataset.data.reduce((a, b) => a + b, 0);
+                  const pct = ((item.raw / total) * 100).toFixed(1);
+                  return ` ${item.label}: ${item.raw} 場次 (${pct}%)`;
+                }
+              }
+            }
+          }
+        }
+      });
+
+      // 渲染國家明細清單
+      const listEl = document.getElementById('countryList');
+      const totalSessions = tourData.length;
+      listEl.innerHTML = sorted.map(([country, count], i) => {
+        const pct = ((count / totalSessions) * 100).toFixed(1);
+        const color = pieColors[i % pieColors.length];
+        return `
+          <div class="flex items-center justify-between py-2 ${i > 0 ? 'border-t border-slate-100' : ''}">
+            <div class="flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full inline-block" style="background:${color}"></span>
+              <span class="text-sm text-text-primary">${escapeHTML(country)}</span>
+            </div>
+            <div class="text-sm text-text-secondary font-mono">
+              ${count} 場次 <span class="text-xs">(${pct}%)</span>
+            </div>
+          </div>`;
+      }).join('');
     }
 
     // ============================================================
