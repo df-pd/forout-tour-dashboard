@@ -1774,6 +1774,8 @@
     let aiChatOpen = false;
     let aiChatHistory = [];  // {role: 'user'|'model', text: '...'}
     let aiChatBusy = false;
+    let aiChatLastSendTime = 0;
+    const AI_CHAT_DEBOUNCE_MS = 2000; // 2 秒內不可重複送出
 
     function toggleAiChat() {
       aiChatOpen = !aiChatOpen;
@@ -1808,6 +1810,11 @@
     async function handleAiChatSubmit(e) {
       e.preventDefault();
       if (aiChatBusy) return;
+
+      // Debounce：防止短時間內重複送出
+      const now = Date.now();
+      if (now - aiChatLastSendTime < AI_CHAT_DEBOUNCE_MS) return;
+      aiChatLastSendTime = now;
 
       const input = document.getElementById('ai-chat-input');
       const message = input.value.trim();

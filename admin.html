@@ -39,6 +39,9 @@
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
 
+  <!-- QR Code 產生器 -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+
   <!-- 認證模組 -->
   <script src="js/auth.js"></script>
 
@@ -438,6 +441,41 @@
 
       </div> <!-- 關閉 grid -->
 
+      <!-- 公開頁面 QR Code 區塊 -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 sm:p-6 max-w-2xl mt-6">
+        <h3 class="text-sm font-bold text-text-primary mb-4 flex items-center gap-2">
+          <i data-lucide="qr-code" class="w-4 h-4 text-primary"></i>
+          公開頁面 QR Code
+        </h3>
+        <p class="text-xs text-text-secondary mb-4">掃描 QR Code 可直接開啟未登入的公開頁面，適合印刷或現場展示。</p>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <!-- 首頁 -->
+          <div class="flex flex-col items-center gap-2 p-4 bg-slate-50 rounded-lg border border-slate-100">
+            <div id="qr-index" class="bg-white p-2 rounded"></div>
+            <span class="text-xs font-semibold text-text-primary">首頁（儀表板）</span>
+            <button onclick="downloadQR('qr-index', '首頁QRCode')" class="cursor-pointer text-xs text-primary hover:text-primary/80 flex items-center gap-1">
+              <i data-lucide="download" class="w-3 h-3"></i> 下載
+            </button>
+          </div>
+          <!-- 預約頁 -->
+          <div class="flex flex-col items-center gap-2 p-4 bg-slate-50 rounded-lg border border-slate-100">
+            <div id="qr-book" class="bg-white p-2 rounded"></div>
+            <span class="text-xs font-semibold text-text-primary">公開導覽預約</span>
+            <button onclick="downloadQR('qr-book', '預約頁QRCode')" class="cursor-pointer text-xs text-primary hover:text-primary/80 flex items-center gap-1">
+              <i data-lucide="download" class="w-3 h-3"></i> 下載
+            </button>
+          </div>
+          <!-- 廢棄物百科 -->
+          <div class="flex flex-col items-center gap-2 p-4 bg-slate-50 rounded-lg border border-slate-100">
+            <div id="qr-waste" class="bg-white p-2 rounded"></div>
+            <span class="text-xs font-semibold text-text-primary">廢棄物百科</span>
+            <button onclick="downloadQR('qr-waste', '廢棄物百科QRCode')" class="cursor-pointer text-xs text-primary hover:text-primary/80 flex items-center gap-1">
+              <i data-lucide="download" class="w-3 h-3"></i> 下載
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- 產生預約連結區塊 -->
       <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 sm:p-6 max-w-2xl mt-6">
         <h3 class="text-sm font-bold text-text-primary mb-4 flex items-center gap-2">
@@ -468,6 +506,16 @@
               </button>
             </div>
             <p class="text-xs text-text-secondary mt-2">到期日：<span id="generated-link-expiry"></span></p>
+            <!-- 新產生連結的 QR Code -->
+            <div class="mt-3 flex items-center gap-3">
+              <div id="generated-link-qr" class="bg-white p-2 rounded border border-blue-200 inline-block"></div>
+              <div class="flex flex-col gap-1">
+                <span class="text-xs text-text-secondary">掃描 QR Code 可直接開啟預約頁面</span>
+                <button onclick="downloadQR('generated-link-qr', '預約連結QRCode')" class="cursor-pointer text-xs text-primary hover:text-primary/80 flex items-center gap-1">
+                  <i data-lucide="download" class="w-3 h-3"></i> 下載 QR Code
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -2190,6 +2238,60 @@
     }
 
     // ============================================================
+    // QR Code 工具函數
+    // ============================================================
+
+    // 產生 QR Code 到指定容器
+    function generateQR(containerId, url, size = 128) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      container.innerHTML = '';
+      QRCode.toCanvas(url, { width: size, margin: 1 }, function (err, canvas) {
+        if (err) {
+          container.innerHTML = '<span class="text-xs text-red-500">QR 產生失敗</span>';
+          return;
+        }
+        container.appendChild(canvas);
+      });
+    }
+
+    // 下載 QR Code 圖片
+    function downloadQR(containerId, filename) {
+      const container = document.getElementById(containerId);
+      const canvas = container?.querySelector('canvas');
+      if (!canvas) return;
+      const link = document.createElement('a');
+      link.download = filename + '.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+
+    // 初始化公開頁面 QR Code
+    function initPublicQRCodes() {
+      const baseUrl = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/');
+      generateQR('qr-index', baseUrl + 'index.html', 120);
+      generateQR('qr-book', baseUrl + 'book.html', 120);
+      generateQR('qr-waste', baseUrl + 'waste-management.html', 120);
+    }
+
+    // 切換連結清單中的 QR Code 顯示
+    function toggleLinkQR(code) {
+      const wrapper = document.getElementById('link-qr-' + code);
+      if (!wrapper) return;
+      const isHidden = wrapper.classList.contains('hidden');
+      wrapper.classList.toggle('hidden');
+      // 首次展開時才產生 QR Code
+      if (isHidden) {
+        const canvasContainer = document.getElementById('link-qr-canvas-' + code);
+        if (canvasContainer && !canvasContainer.querySelector('canvas')) {
+          const baseUrl = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/');
+          generateQR('link-qr-canvas-' + code, baseUrl + 'book.html?code=' + code, 120);
+        }
+        lucide.createIcons();
+      }
+    }
+
+    // ============================================================
     // 一次式預約連結
     // ============================================================
 
@@ -2208,6 +2310,10 @@
           document.getElementById('generated-link-url').value = linkUrl;
           document.getElementById('generated-link-expiry').textContent = result.expiry;
           document.getElementById('generated-link-result').classList.remove('hidden');
+
+          // 產生連結的 QR Code
+          generateQR('generated-link-qr', linkUrl, 128);
+          lucide.createIcons();
 
           // 自動重新載入連結清單
           loadLinks();
@@ -2264,20 +2370,37 @@
           const linkUrl = baseUrl + 'book.html?code=' + link.code;
 
           return `
-            <div class="flex items-center justify-between px-4 py-3 bg-slate-50 rounded-lg border border-slate-100">
-              <div class="flex items-center gap-3 min-w-0">
-                <span class="font-mono text-xs font-bold text-primary">${escapeHTML(link.code)}</span>
-                <span class="text-xs px-2 py-0.5 rounded-full ${st.color} font-medium">${st.label}</span>
-                <span class="text-xs text-text-secondary hidden sm:inline">${escapeHTML(link.createdBy)} · ${escapeHTML(link.expiry)}</span>
+            <div class="px-4 py-3 bg-slate-50 rounded-lg border border-slate-100">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3 min-w-0">
+                  <span class="font-mono text-xs font-bold text-primary">${escapeHTML(link.code)}</span>
+                  <span class="text-xs px-2 py-0.5 rounded-full ${st.color} font-medium">${st.label}</span>
+                  <span class="text-xs text-text-secondary hidden sm:inline">${escapeHTML(link.createdBy)} · ${escapeHTML(link.expiry)}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  ${link.status === 'active' ? `
+                    <button onclick="toggleLinkQR('${escapeHTML(link.code)}')" class="cursor-pointer text-xs text-primary hover:text-primary/80 transition-colors flex items-center gap-1 min-h-[44px] px-2">
+                      <i data-lucide="qr-code" class="w-3.5 h-3.5"></i>
+                      <span class="hidden sm:inline">QR</span>
+                    </button>
+                    <button onclick="copyLinkUrl('${escapeHTML(linkUrl)}')" class="cursor-pointer text-xs text-primary hover:text-primary/80 transition-colors flex items-center gap-1 min-h-[44px] px-2">
+                      <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                      <span class="hidden sm:inline">複製</span>
+                    </button>
+                  ` : ''}
+                </div>
               </div>
-              <div class="flex items-center gap-2">
-                ${link.status === 'active' ? `
-                  <button onclick="copyLinkUrl('${escapeHTML(linkUrl)}')" class="cursor-pointer text-xs text-primary hover:text-primary/80 transition-colors flex items-center gap-1 min-h-[44px] px-2">
-                    <i data-lucide="copy" class="w-3.5 h-3.5"></i>
-                    <span class="hidden sm:inline">複製</span>
-                  </button>
-                ` : ''}
-              </div>
+              ${link.status === 'active' ? `
+                <div id="link-qr-${escapeHTML(link.code)}" class="hidden mt-3 flex items-center gap-3 pt-3 border-t border-slate-200">
+                  <div id="link-qr-canvas-${escapeHTML(link.code)}" class="bg-white p-2 rounded border border-slate-200 inline-block"></div>
+                  <div class="flex flex-col gap-1">
+                    <span class="text-xs text-text-secondary">掃描可直接開啟預約頁</span>
+                    <button onclick="downloadQR('link-qr-canvas-${escapeHTML(link.code)}', 'QR_${escapeHTML(link.code)}')" class="cursor-pointer text-xs text-primary hover:text-primary/80 flex items-center gap-1">
+                      <i data-lucide="download" class="w-3 h-3"></i> 下載
+                    </button>
+                  </div>
+                </div>
+              ` : ''}
             </div>
           `;
         }).join('');
@@ -2306,6 +2429,9 @@
       document.getElementById('footerYear').textContent = new Date().getFullYear();
       lucide.createIcons();
       updateUserInfo();
+
+      // 初始化公開頁面 QR Code
+      initPublicQRCodes();
 
       // 套用權限控制（顯示/隱藏 Tab）
       applyPermissions();
