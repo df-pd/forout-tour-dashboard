@@ -962,8 +962,8 @@
         return d && d.getMonth() === currentMonth && d.getFullYear() === currentYear;
       }).length;
 
-      // 計算不重複國家數量
-      const countries = new Set(tourData.map(r => r.country).filter(c => c && c !== '-'));
+      // 計算不重複國家數量（排除台灣）
+      const countries = new Set(tourData.map(r => r.country).filter(c => c && c !== '-' && c !== '台灣'));
       const countryCount = countries.size;
 
       document.getElementById('kpi-sessions').textContent = totalSessions.toLocaleString();
@@ -1169,10 +1169,11 @@
     }
 
     function renderCountryChart() {
-      // 按國家統計場次數
+      // 按國家統計場次數（排除台灣）
       const countryMap = {};
       tourData.forEach(r => {
         const c = r.country || '未填寫';
+        if (c === '台灣') return;  // 不顯示台灣
         if (!countryMap[c]) countryMap[c] = 0;
         countryMap[c] += 1;
       });
